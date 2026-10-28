@@ -240,7 +240,7 @@ const mapLink = (la,ln) => `https://www.google.com/maps?q=${la},${ln}`;
 
 const SEED_VERSION = 16;
 const DB = {};
-let supa = null;
+let supa = null; for(const t of TABLES) DB[t]=[];
 const isRemote = () => !!supa;
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
 function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -397,7 +397,7 @@ const userName = id => (DB.users.find(u=>u.id===id)||{}).name || '—';
 const shortName = id => { const n=userName(id); const p=n.split(' '); return p.length>1?p[p.length-2]+' '+p[p.length-1]:n; };
 const initials = id => userName(id).split(' ').pop().slice(0,2).toUpperCase();
 const cust = id => DB.customers.find(c=>c.id===id)||{};
-const setting = () => DB.settings[0] || {shop_name:'ACQ Smarthome', address:'', phone:''};
+const setting = () => (DB.settings&&DB.settings[0]) || {shop_name:'ACQ Smarthome', address:'', phone:''};
 const nextCode = () => { const n=DB.jobs.reduce((m,j)=>Math.max(m,parseInt((j.code||'').split('-')[1])||0),0)+1; return 'CV-'+String(n).padStart(4,'0'); };
 const jobTotals = j => ({
   items: DB.job_items.filter(x=>x.job_id===j.id).reduce((s,x)=>s+(+x.qty||0)*(+x.unit_price||0),0),
@@ -440,7 +440,7 @@ async function notify(to, title, body, jobId, kind){
   const ids=[...new Set((Array.isArray(to)?to:[to]).filter(Boolean).filter(id=>id!==me().id))]; if(!ids.length) return;
   for(const uid of ids) await Store.insert('notifications',{user_id:uid,from_id:me().id,title,body:body||'',job_id:jobId||null,kind:kind||'info',read:false});
 }
-const myNotifs = () => DB.notifications.filter(n=>n.user_id===me().id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+const myNotifs = () => (DB.notifications||[]).filter(n=>n.user_id===me().id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 const unreadCount = () => myNotifs().filter(n=>!n.read).length;
 function openNotifs(){ const list=myNotifs().slice(0,60);
   S.modal={html:`<div class="mhead"><h2>Thông báo</h2><button class="x" data-act="closemodal">×</button></div><div class="stack">
@@ -970,7 +970,7 @@ function startSync(){ if(!isRemote()) return; clearInterval(syncTimer); syncTime
   try{ if(rtChannel) supa.removeChannel(rtChannel); rtChannel=supa.channel('db-changes'); let t=null; const bump=()=>{ clearTimeout(t); t=setTimeout(refreshRemote,800); }; ['jobs','job_logs','acceptances','payments','expenses','job_items','items','customers','users','settings','notifications'].forEach(tb=>rtChannel.on('postgres_changes',{event:'*',schema:'public',table:tb},bump)); rtChannel.subscribe(); }catch(e){ console.warn('realtime',e); } }
 async function afterRemoteLogin(session){
   const {data:prof}=await supa.from('users').select('*').eq('id',session.user.id).single();
-  if(!prof){ const el=document.getElementById('lerr'); if(el) el.textContent='Tài khoản chưa được gắn vào công ty.'; return; }
+  if(!prof){ const el=document.getElementById('lerr'); if(el) el.textContent='Tài khoản chưa được gắn vào công ty (chủ cần kích hoạt).'; await supa.auth.signOut(); return; }
   S.user=prof; S.jobFilter.mine=prof.role!=='owner'; await Store.loadAll(prof.role); render(); startSync();
 }
 (async function boot(){

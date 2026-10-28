@@ -1,5 +1,5 @@
 // Service worker: mở được khi mất mạng, và báo khi có bản mới.
-const VERSION = '202610280906';
+const VERSION = '202610280943';
 const CACHE = 'soviec-' + VERSION;
 const ASSETS = ['./', './index.html', './config.js', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); });

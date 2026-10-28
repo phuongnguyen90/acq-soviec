@@ -15,12 +15,21 @@ create table if not exists users (
 );
 
 -- Khi có tài khoản auth mới → tự tạo hồ sơ (vai trò nhân viên; chủ sửa lại sau)
-create or replace function handle_new_user() returns trigger language plpgsql security definer as $$
+create or replace function public.handle_new_user() returns trigger
+language plpgsql security definer set search_path = public as $$
 begin
-  insert into users (id, email, name) values (new.id, new.email, coalesce(new.raw_user_meta_data->>'name', split_part(new.email,'@',1)))
-  on conflict (id) do nothing;
+  begin
+    insert into public.users (id, email, name)
+    values (new.id, coalesce(new.email,''), coalesce(new.raw_user_meta_data->>'name', split_part(coalesce(new.email,''),'@',1)))
+    on conflict (id) do nothing;
+  exception when others then
+    raise warning 'handle_new_user: %', sqlerrm;
+  end;
   return new;
 end $$;
+alter function public.handle_new_user() owner to postgres;
+grant usage on schema public to supabase_auth_admin;
+grant insert, select on public.users to supabase_auth_admin;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute function handle_new_user();
 
@@ -110,6 +119,14 @@ create table if not exists acceptances (
   created_at timestamptz not null default now()
 );
 
+-- Hàm phân quyền dùng chung
+create or replace function is_owner() returns boolean language sql stable security definer as $$
+  select coalesce((select role = 'owner' and active from users where id = auth.uid()), false)
+$$;
+create or replace function is_member() returns boolean language sql stable security definer as $$
+  select coalesce((select active from users where id = auth.uid()), false)
+$$;
+
 -- Nhân viên không thấy giá nên khi xuất vật tư, giá bán được điền tự động từ kho
 create or replace function fill_job_item_price() returns trigger language plpgsql security definer as $$
 begin
@@ -164,12 +181,6 @@ drop trigger if exists job_logs_stamp on job_logs;
 create trigger job_logs_stamp before insert on job_logs for each row execute function stamp_log_user();
 
 -- ===== Phân quyền (Row Level Security) =====
-create or replace function is_owner() returns boolean language sql stable security definer as $$
-  select coalesce((select role = 'owner' and active from users where id = auth.uid()), false)
-$$;
-create or replace function is_member() returns boolean language sql stable security definer as $$
-  select coalesce((select active from users where id = auth.uid()), false)
-$$;
 
 -- Nhân viên: xem kho nhưng không thấy giá vốn / giá bán
 create or replace view items_staff with (security_invoker = off) as
@@ -190,6 +201,7 @@ alter table acceptances enable row level security;
 -- users: mọi thành viên xem danh sách; chỉ chủ sửa
 drop policy if exists users_select on users; create policy users_select on users for select using (is_member() or id = auth.uid());
 drop policy if exists users_owner on users; create policy users_owner on users for update using (is_owner());
+drop policy if exists users_auth_admin on users; create policy users_auth_admin on users for insert to supabase_auth_admin with check (true);
 
 -- settings: xem chung, chủ sửa
 drop policy if exists settings_select on settings; create policy settings_select on settings for select using (is_member());
@@ -264,16 +276,19 @@ drop policy if exists push_own on push_subscriptions; create policy push_own on 
 do $$ begin execute 'alter publication supabase_realtime add table notifications'; exception when duplicate_object then null; end $$;
 
 -- Gửi Web Push khi có thông báo mới: trigger gọi Edge Function qua pg_net.
--- Thay 2 chỗ <PROJECT_REF> và <ANON_KEY> bằng giá trị của dự án (Project Settings → API).
+-- Thay 2 chỗ qzdhpgxllrehyggfwsor và sb_publishable_Lcji-dafAWQ1sfLzb4PzLg_VjEAJftR bằng giá trị của dự án (Project Settings → API).
 create extension if not exists pg_net;
 create or replace function notify_push() returns trigger language plpgsql security definer as $$
 begin
   perform net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-push',
-    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer <ANON_KEY>'),
+    url := 'https://qzdhpgxllrehyggfwsor.supabase.co/functions/v1/send-push',
+    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer sb_publishable_Lcji-dafAWQ1sfLzb4PzLg_VjEAJftR'),
     body := jsonb_build_object('record', to_jsonb(new))
   );
   return new;
 end $$;
 drop trigger if exists notifications_push on notifications;
 create trigger notifications_push after insert on notifications for each row execute function notify_push();
+
+-- ===== Gán vai trò chủ (chạy sau khi đã tạo user trong Authentication) =====
+-- update users set role='owner', name='ACQ Smarthome' where email='<email-chủ>';
