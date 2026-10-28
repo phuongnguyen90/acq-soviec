@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1016">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ACQ Sổ việc">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="config.js"></script>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} img{max-width:100%} [hidden]{display:none!important}</style>
+</head>
+<body>
+<title>ACQ Smarthome · Sổ việc</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: "bảng điều khiển kỹ thuật" — thanh điều hướng trái (desktop) / dưới (điện thoại), lưới thẻ, số liệu lớn kiểu đồng hồ đo. Tối là mặc định. */
+:root{
+  --bg:#0b1016; --bg2:#0f161e; --panel:#141c26; --panel2:#1b2531; --line:#243140; --line2:#2f3f52;
+  --fg:#e8eef5; --muted:#8a9bb0; --accent:#19d3f0; --accent-fg:#06161c; --accent-soft:#0e3340; --accent2:#ffb02e;
+  --ok:#3ddc84; --ok-soft:#0f3324; --warn:#ffb02e; --warn-soft:#3a2a0b; --bad:#ff5c6c; --bad-soft:#3d1218;
+  --info:#19d3f0; --info-soft:#0e3340; --hold:#b48cff; --hold-soft:#2a1f45;
+  --glow:0 0 0 1px rgba(25,211,240,.25),0 8px 30px rgba(25,211,240,.08);
+  --font:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --disp:"Chakra Petch","Be Vietnam Pro",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:12px; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#eef2f6; --bg2:#e6ebf1; --panel:#ffffff; --panel2:#f1f4f8; --line:#d5dde7; --line2:#c3cedb;
+  --fg:#101820; --muted:#5b6b7d; --accent:#0a97b0; --accent-fg:#ffffff; --accent-soft:#d9f3f8; --accent2:#c77a00;
+  --ok:#1f9e5a; --ok-soft:#d9f3e4; --warn:#b36f00; --warn-soft:#fff0d1; --bad:#d13644; --bad-soft:#fde0e3;
+  --info:#0a97b0; --info-soft:#d9f3f8; --hold:#7445d6; --hold-soft:#e9e0fb;
+  --glow:0 0 0 1px rgba(10,151,176,.25),0 8px 24px rgba(10,151,176,.10); color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#eef2f6; --bg2:#e6ebf1; --panel:#ffffff; --panel2:#f1f4f8; --line:#d5dde7; --line2:#c3cedb;
+  --fg:#101820; --muted:#5b6b7d; --accent:#0a97b0; --accent-fg:#ffffff; --accent-soft:#d9f3f8; --accent2:#c77a00;
+  --ok:#1f9e5a; --ok-soft:#d9f3e4; --warn:#b36f00; --warn-soft:#fff0d1; --bad:#d13644; --bad-soft:#fde0e3;
+  --info:#0a97b0; --info-soft:#d9f3f8; --hold:#7445d6; --hold-soft:#e9e0fb;
+  --glow:0 0 0 1px rgba(10,151,176,.25),0 8px 24px rgba(10,151,176,.10); color-scheme:light}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);background-image:radial-gradient(1200px 500px at 80% -200px,var(--accent-soft),transparent 60%);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+h1,h2,h3{margin:0;text-wrap:balance;font-family:var(--disp);font-weight:600;letter-spacing:.01em}
+h1{font-size:1.5rem}h2{font-size:1.1rem}h3{font-size:.95rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:.82rem}
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* shell */
+#app{display:flex;min-height:100%}
+.rail{display:none}
+.main{flex:1;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 96px;max-width:1140px;margin:0 auto;width:100%}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--bg);display:flex;align-items:center;gap:10px;padding-block:8px 10px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.brand{font-family:var(--disp);font-weight:700;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.brand i{width:10px;height:10px;border-radius:2px;background:var(--accent);box-shadow:0 0 10px var(--accent);display:inline-block}
+.topbar .sp{flex:1}
+.avatar{width:30px;height:30px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;font-size:.85rem;flex:none}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:9;display:flex;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
+.tabbar button{flex:1;background:none;border:0;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.66rem;font-weight:500;color:var(--muted);cursor:pointer}
+.tabbar button svg{width:22px;height:22px}
+.tabbar button.active{color:var(--accent)}
+@media(min-width:900px){
+  .rail{display:flex;flex-direction:column;gap:4px;width:224px;flex:none;padding:18px 12px;border-right:1px solid var(--line);position:sticky;top:0;height:100vh;background:var(--bg2)}
+  .rail .brand{padding:6px 10px 18px;font-size:1rem}
+  .rail button{text-align:left;background:none;border:0;border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;gap:10px;align-items:center;color:var(--fg);font-weight:500}
+  .rail button svg{width:20px;height:20px;color:var(--muted)}
+  .rail button.active{background:var(--accent-soft);color:var(--accent)}
+  .rail button.active svg{color:var(--accent)}
+  .rail .foot{margin-top:auto;padding:10px 12px;font-size:.82rem;color:var(--muted)}
+  .tabbar{display:none}
+  .main{padding-block:16px 40px}
+}
+
+/* components */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row>.grow{flex:1;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.btn{border:1px solid var(--line2);background:var(--panel2);border-radius:9px;padding:9px 14px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:.92rem}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#06161c}
+.btn.danger{color:var(--bad);border-color:var(--bad);background:transparent}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:.82rem}
+.btn.big{padding:13px 18px;font-size:1rem;width:100%;justify-content:center}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted)}
+label.f>input,label.f>select,label.f>textarea,.inp{font-size:.95rem;color:var(--fg);background:var(--bg2);border:1px solid var(--line2);border-radius:9px;padding:9px 10px;width:100%}
+textarea{resize:vertical;min-height:70px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chip{border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:5px 12px;font-size:.84rem;cursor:pointer;white-space:nowrap;font-weight:500}
+.chip.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-family:var(--mono)}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.s-moi{background:var(--info-soft);color:var(--info)}
+.s-dang_lam{background:var(--warn-soft);color:var(--warn)}
+.s-cho_vat_tu{background:var(--hold-soft);color:var(--hold)}
+.s-hoan_thanh{background:var(--ok-soft);color:var(--ok)}
+.s-huy{background:var(--panel2);color:var(--muted)}
+.job{display:grid;grid-template-columns:5px 1fr;gap:10px;cursor:pointer;padding:8px 10px 8px 8px;transition:border-color .15s;position:relative}
+.job:hover{border-color:var(--accent)}
+.job .bar{border-radius:3px;background:var(--line2)}
+.job.p-vua .bar{background:var(--warn)}
+.job.p-cao{background:color-mix(in srgb,var(--bad) 9%,var(--panel));border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+.job.p-cao .bar{background:var(--bad);box-shadow:0 0 8px var(--bad)}
+.job.overdue{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--panel))}
+.job.overdue .bar{background:var(--bad);animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.job.overdue .bar{animation:none}}
+.job.closed{opacity:.62}
+.job .l1{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow:hidden;white-space:nowrap;font-size:.74rem;color:var(--muted)}
+.job .l1 .pill{flex:none}
+.job .t{font-weight:600;font-size:.95rem;line-height:1.25;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+@media(min-width:900px){.job .t{-webkit-line-clamp:2}}
+.job .meta{display:flex;gap:6px;flex-wrap:nowrap;overflow:hidden;white-space:nowrap;font-size:.78rem;color:var(--muted);margin-top:3px}
+.job .meta>span{overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+.job .meta .sep{flex:none;opacity:.5}
+.job .over{color:var(--bad);font-weight:700;flex:none!important}
+.job .urg{color:var(--bad);font-weight:700;letter-spacing:.04em}
+.job .seqbtn{position:absolute;right:8px;top:6px;display:flex;gap:2px}
+.prog{display:flex;align-items:center;gap:8px;margin-top:4px}.prog .pb{flex:1;height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}.prog .pb i{display:block;height:100%;background:var(--accent)}
+.fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:8;background:var(--accent);color:var(--accent-fg);border:0;border-radius:999px;padding:13px 20px;font-weight:700;font-family:var(--disp);box-shadow:var(--glow);cursor:pointer;letter-spacing:.03em}
+@media(min-width:900px){.fab{bottom:28px}}
+.modal-bg{position:fixed;inset:0;background:rgba(3,8,14,.7);backdrop-filter:blur(3px);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:700px){.modal-bg{align-items:center}}
+.modal{background:var(--panel);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;border:1px solid var(--line);padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+@media(min-width:700px){.modal{border-radius:14px;padding:20px}}
+.modal.wide{max-width:880px}
+.mhead{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.mhead>div:first-child,.mhead h2{flex:1;min-width:0}
+.x{background:none;border:0;font-size:1.5rem;cursor:pointer;color:var(--muted);line-height:1}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:8px 12px;cursor:pointer;color:var(--muted);white-space:nowrap;font-weight:600;font-size:.88rem}
+.tabs button.active{color:var(--accent);border-bottom-color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;font-family:var(--mono)}
+td.r,th.r{text-align:right}
+.twrap{overflow-x:auto}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+@media(max-width:600px){.kpi{display:flex;overflow-x:auto;scrollbar-width:none;gap:8px;margin:0 -2px;padding:2px}.kpi .card{flex:0 0 118px;padding:8px 10px}.kpi .v{font-size:1.25rem}}
+.kpi .card{padding:10px 12px;position:relative;overflow:hidden}
+.kpi .card::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--line2)}
+.kpi .card.hi::after{background:var(--accent)}
+.kpi .card.bad::after{background:var(--bad)}
+.kpi .card.ok::after{background:var(--ok)}
+.kpi .v{font-family:var(--disp);font-size:1.6rem;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:.74rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+.log{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.log .av{width:30px;height:30px;border-radius:8px;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex:none;font-family:var(--disp)}
+.log.ci .av{background:var(--ok-soft);color:var(--ok)}
+.log.co .av{background:var(--warn-soft);color:var(--warn)}
+.log img{max-width:160px;border-radius:6px;display:block;margin-top:6px}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps button{border-radius:999px;border:1px solid var(--line2);background:var(--panel2);padding:6px 12px;font-size:.84rem;cursor:pointer;font-weight:500}
+.steps button.cur{font-weight:700;border-width:2px}
+.bars{display:flex;flex-direction:column;gap:6px}
+.bars .b{display:grid;grid-template-columns:110px 1fr 56px;gap:8px;align-items:center;font-size:.84rem}
+.bars .b .t{height:12px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.bars .b .t i{display:block;height:100%;background:var(--accent)}
+.low{color:var(--bad);font-weight:600}
+.empty{text-align:center;color:var(--muted);padding:28px 10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;z-index:30;font-size:.9rem;font-weight:500;max-width:90vw;text-align:center}
+@media(min-width:900px){.toast{bottom:30px}}
+.login{max-width:440px;margin:6vh auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.login .u{display:flex;gap:12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:var(--panel)}
+.login .u:hover{border-color:var(--accent);box-shadow:var(--glow)}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:.84rem}
+.onsite{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--ok-soft);border:1px solid var(--ok);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:.88rem}
+.onsite.warn{background:var(--bad-soft);border-color:var(--bad)}
+.cam{position:fixed;inset:0;background:#000;z-index:40;display:flex;flex-direction:column}
+.cam video{flex:1;width:100%;object-fit:cover;background:#000}
+.cam .bar2{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:#0b1016;color:#e8eef5}
+.cam .shut{width:68px;height:68px;border-radius:50%;border:4px solid #e8eef5;background:#19d3f0;cursor:pointer}
+.cam .stamp{position:absolute;left:0;right:0;top:env(safe-area-inset-top,0px);padding:8px 16px;font-family:var(--mono);font-size:.72rem;color:#e8eef5;background:linear-gradient(rgba(0,0,0,.55),transparent)}
+.badge{position:absolute;top:-4px;right:-4px;background:var(--bad);color:#fff;border-radius:999px;font-size:.66rem;font-weight:700;min-width:17px;height:17px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-family:var(--mono)}
+.note.info{background:var(--accent-soft);color:var(--accent)}
+.action{display:grid;gap:8px;grid-template-columns:1fr}
+@media(min-width:520px){.action.two{grid-template-columns:1fr 1fr}}
+.geo{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+svg.chart{width:100%;height:auto;display:block}
+svg.chart text{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+svg.chart .bar{fill:var(--accent)}
+svg.chart .bar.dim{fill:var(--line2)}
+svg.chart .bar.ok{fill:var(--ok)}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .lbl{fill:var(--fg);font-weight:600}
+.sheetimg{width:100%;border-radius:8px;border:1px solid var(--line);display:block;background:#fff}
+.sig-wrap{border:1px dashed var(--line2);border-radius:10px;background:#fff;overflow:hidden}
+.sig-wrap canvas{width:100%;height:170px;display:block;touch-action:none}
+.timeline{display:flex;flex-direction:column;gap:4px}
+.timeline .tl{display:grid;grid-template-columns:52px 1fr;gap:10px;font-size:.84rem;padding:5px 0;border-bottom:1px dashed var(--line)}
+.timeline .tl .tm{font-family:var(--mono);color:var(--muted)}
+.flag{color:var(--bad);font-weight:600}
+</style>
+
+<div id="root"></div>
+
+<script>
+/* ===================== CẤU HÌNH & LỚP DỮ LIỆU ===================== */
+const CFG = window.APP_CONFIG || {};
+const TABLES = ['settings','users','customers','jobs','job_logs','items','job_items','expenses','payments','acceptances','notifications'];
+const STATUS = {moi:'Mới', dang_lam:'Đang làm', cho_vat_tu:'Chờ vật tư', hoan_thanh:'Hoàn thành', huy:'Hủy'};
+const TYPES = {lap:'Lắp đặt', sua:'Sửa chữa', baotri:'Bảo trì', ban:'Bán hàng', khaosat:'Khảo sát', khac:'Khác'};
+const PRIO = {cao:'Gấp', vua:'Bình thường'};
+const MODES = {onsite:'Tại công trình', remote:'Từ xa (online)', delivery:'Giao hàng (đã làm sẵn)'};
+const isRemoteSession = l => !!(l && (l.remote));
+const EST = [[2,'2 giờ'],[4,'4 giờ'],[8,'1 ngày'],[16,'2 ngày'],[24,'3 ngày'],[40,'1 tuần']];
+const jobMinutes = j => DB.users.reduce((a,u)=>a+sessions(u.id).filter(x=>x.job_id===j.id).reduce((b,x)=>b+x.min,0),0);
+const modeSel = (v)=>`<select name="mode">${Object.entries(MODES).map(([k,l])=>`<option value="${k}" ${v===k?'selected':''}>${l}</option>`).join('')}</select>`;
+const estSel = (v)=>`<select name="est"><option value="">— chưa ước tính —</option>${EST.map(([h,l])=>`<option value="${h}" ${+v===h?'selected':''}>${l}</option>`).join('')}</select>`;
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2));
+const now = () => new Date().toISOString();
+const fmtVND = n => (Math.round(+n||0)).toLocaleString('vi-VN') + ' đ';
+const fmtD = s => s ? new Date(s).toLocaleDateString('vi-VN') : '';
+const fmtT = s => s ? new Date(s).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}) : '';
+const fmtDT = s => s ? new Date(s).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}) : '';
+const fmtH = min => min<60 ? Math.round(min)+' ph' : (min/60).toFixed(1).replace('.0','')+' giờ';
+const F = f => new Proxy(f,{get:(o,k)=>{const e=o.elements&&typeof k==='string'&&o.elements.namedItem(k); return e||Reflect.get(o,k);}});
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dayKey = s => { const d=new Date(s); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const normAddr = a => String(a||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+const jobAddr = j => j.address || cust(j.customer_id).address || '';
+async function rememberSite(j, lat, lng){ const c=cust(j.customer_id); if(!c.id) return; const addr=jobAddr(j); if(!addr) return; const sites=(c.sites||[]).filter(x=>normAddr(x.address)!==normAddr(addr)); sites.push({address:addr,lat,lng}); await Store.update('customers',c.id,{sites}); }
+const knownSite = (c,addr) => (c.sites||[]).find(x=>normAddr(x.address)===normAddr(addr))||null;
+const parseCoords = t => { const m=String(t||'').match(/(-?\d{1,2}\.\d{3,})[,\s%2C]+(-?\d{1,3}\.\d{3,})/); return m?{lat:+m[1],lng:+m[2]}:null; };
+const mapLink = (la,ln) => `https://www.google.com/maps?q=${la},${ln}`;
+
+const SEED_VERSION = 16;
+const DB = {};
+let supa = null;
+const isRemote = () => !!supa;
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+async function loadSupabase(){
+  if(!CFG.supabaseUrl || !CFG.supabaseKey) return false;
+  await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  supa = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
+  return true;
+}
+const Store = {
+  async loadAll(role){ const fix=()=>{ (DB.jobs||[]).forEach(j=>{ if(j.mode==='mixed') j.mode='onsite'; if(j.priority==='thap') j.priority='vua'; }); };
+    if(isRemote()){
+      for(const t of TABLES){ const src=(t==='items'&&role!=='owner')?'items_staff':t; const {data,error}=await supa.from(src).select('*').order('created_at',{ascending:false}); DB[t]=error?[]:(data||[]); if(error) console.warn(t,error.message); }
+    }else{ const saved=lsGet('acq_db'); if(saved&&saved._v===SEED_VERSION){ for(const t of TABLES) DB[t]=saved[t]||[]; } else { seedDemo(); this.persist(); if(saved) setTimeout(()=>toast('Đã nạp dữ liệu mẫu phiên bản mới'),600); } } fix();
+  },
+  persist(){ if(!isRemote()) lsSet('acq_db', Object.assign({_v:SEED_VERSION},DB)); },
+  async insert(t,row){ row.id=row.id||uid(); row.created_at=row.created_at||now(); if(isRemote()){ const {error}=await supa.from(t).insert(row); if(error) throw error; } DB[t].unshift(row); this.persist(); return row; },
+  async update(t,id,patch){ if(isRemote()){ const {error}=await supa.from(t).update(patch).eq('id',id); if(error) throw error; } const r=DB[t].find(x=>x.id===id); if(r) Object.assign(r,patch); this.persist(); return r; },
+  async remove(t,id){ if(isRemote()){ const {error}=await supa.from(t).delete().eq('id',id); if(error) throw error; } DB[t]=DB[t].filter(x=>x.id!==id); this.persist(); }
+};
+
+function seedDemo(){
+  for(const t of TABLES) DB[t]=[];
+  const d = h => new Date(Date.now()-h*3600e3).toISOString();
+  const today = h => { const x=new Date(); x.setHours(h,0,0,0); return x.toISOString(); };
+  const G = {a:[15.1214,108.8044], b:[15.1185,108.7936], c:[15.1300,108.8120], d:[15.1050,108.7850]};
+  DB.settings=[{id:'main', shop_name:'ACQ Smarthome', address:'Quảng Ngãi', phone:'0905 000 111', created_at:now()}];
+  DB.users=[
+    {id:'u0',name:'Quản lý ACQ',phone:'0905000111',role:'owner',active:true,created_at:d(900)},
+    {id:'u1',name:'Nguyễn Văn Hiền',phone:'0905000222',role:'staff',active:true,created_at:d(900)},
+    {id:'u2',name:'Trần Hải Dương',phone:'0905000333',role:'staff',active:true,created_at:d(900)},
+    {id:'u3',name:'Lê Tuấn Anh',phone:'0905000444',role:'staff',active:true,created_at:d(900)},
+    {id:'u4',name:'Phạm Hoài Phương',phone:'0905000555',role:'staff',active:true,created_at:d(900)}];
+  DB.customers=[
+    {id:'c1',name:'Chị Hoa',phone:'0912345678',address:'45 Lê Lợi, P. Nghĩa Chánh',sites:[{address:'45 Lê Lợi, P. Nghĩa Chánh',lat:G.a[0],lng:G.a[1]}],created_at:d(80)},
+    {id:'c2',name:'Anh Tuấn – quán cà phê Sông Trà',phone:'0988123456',address:'12 Hai Bà Trưng',sites:[{address:'12 Hai Bà Trưng',lat:G.b[0],lng:G.b[1]}],created_at:d(60)},
+    {id:'c3',name:'Trường mầm non Hoa Mai',phone:'02553822333',address:'210 Nguyễn Nghiêm',created_at:d(40)},
+    {id:'c4',name:'Anh Dũng',phone:'0934567890',address:'Thôn 3, Nghĩa Dõng',created_at:d(10)},
+    {id:'c5',name:'Biệt thự anh Long',phone:'0909888777',address:'KĐT Phú Mỹ, lô B12',created_at:d(200)}];
+  DB.items=[
+    {id:'i1',name:'Camera IP 2K ngoài trời',sku:'CAM-2K',unit:'cái',qty:6,min_qty:2,cost:520000,price:850000,created_at:d(900)},
+    {id:'i2',name:'Công tắc cảm ứng 2 nút (Zigbee)',sku:'SW-2Z',unit:'cái',qty:3,min_qty:6,cost:210000,price:390000,created_at:d(900)},
+    {id:'i3',name:'Bộ trung tâm Zigbee Hub',sku:'HUB-ZB',unit:'cái',qty:4,min_qty:2,cost:380000,price:690000,created_at:d(900)},
+    {id:'i4',name:'Khóa cửa vân tay',sku:'LOCK-FP',unit:'cái',qty:2,min_qty:1,cost:2100000,price:3200000,created_at:d(900)},
+    {id:'i5',name:'Nguồn 12V 2A',sku:'NG-12V',unit:'cái',qty:11,min_qty:4,cost:40000,price:90000,created_at:d(900)},
+    {id:'i6',name:'Dây mạng Cat6 (m)',sku:'CAT6',unit:'m',qty:120,min_qty:50,cost:5000,price:9000,created_at:d(900)},
+    {id:'i7',name:'Wifi Mesh (bộ 2)',sku:'MESH-2',unit:'bộ',qty:3,min_qty:1,cost:1450000,price:2100000,created_at:d(900)}];
+  DB.customers.push(
+    {id:'c6',name:'Nhà hàng Hải Sản Biển Xanh',phone:'02553717888',address:'Mỹ Khê, Tịnh Khê',sites:[{address:'Mỹ Khê, Tịnh Khê',lat:15.1620,lng:108.8650}],created_at:d(500)},
+    {id:'c7',name:'Chị Thu (shop quần áo)',phone:'0977111222',address:'68 Quang Trung',sites:[],created_at:d(300)},
+    {id:'c8',name:'Công ty TNHH Phú Thịnh',phone:'02553828999',address:'KCN Tịnh Phong',sites:[{address:'KCN Tịnh Phong',lat:15.2110,lng:108.8100}],created_at:d(400)},
+    {id:'c9',name:'Anh Khoa',phone:'0905777666',address:'Lô 12 KDC Phan Đình Phùng',sites:[],created_at:d(120)},
+    {id:'c10',name:'Cô Bảy',phone:'0366555444',address:'Thôn Phước Lộc, Tịnh Sơn',sites:[],created_at:d(90)});
+  const J=(id,n,cid,title,o)=>Object.assign({id,code:'CV-'+String(n).padStart(4,'0'),customer_id:cid,type:'khac',title,description:'',priority:'vua',mode:'onsite',est:4,progress:0,quote:0,created_by:'u0',created_at:d(o.age||24),status:'moi'},o);
+  const H=(h)=>today(h);
+  DB.jobs=[
+    J('j1',1,'c1','Lắp 2 camera ngoài trời + xem trên điện thoại',{status:'hoan_thanh',assignee_id:'u1',due_at:d(70),quote:2400000,progress:100,age:80,done_at:d(66),lat:G.a[0],lng:G.a[1]}),
+    J('j2',2,'c2','Lắp 4 camera IP + mesh wifi quán cà phê',{status:'dang_lam',assignee_id:'u2',priority:'cao',due_at:d(-20),quote:6500000,est:16,progress:70,age:60,site_lat:G.b[0],site_lng:G.b[1],site_auto:true,description:'4 góc: cổng, quầy, sân sau, kho.'}),
+    J('j3',3,'c3','Bảo trì hệ thống camera + kiểm tra ghi hình',{status:'dang_lam',assignee_id:'u4',priority:'vua',due_at:d(-96),quote:900000,progress:30,age:40,description:'Lịch 6 tháng/lần. Vào buổi chiều sau 16h.'}),
+    J('j4',4,'c5','Công tắc phòng khách mất kết nối hub',{status:'cho_vat_tu',assignee_id:'u3',due_at:d(5),quote:450000,est:2,progress:50,age:30,description:'Phát sinh sau khi khách đổi modem.'}),
+    J('j5',5,'c4','Khảo sát lắp khóa vân tay + chuông cửa',{status:'moi',due_at:d(-40),est:2,age:10}),
+    J('j6',6,'c5','Lắp khóa vân tay cửa chính',{status:'hoan_thanh',assignee_id:'u3',due_at:d(170),quote:3800000,est:2,progress:100,age:180,done_at:d(165),lat:G.c[0],lng:G.c[1]}),
+    J('j7',7,'c1','Camera cổng mất hình ban đêm',{status:'hoan_thanh',assignee_id:'u1',priority:'cao',due_at:d(28),quote:300000,est:2,progress:100,age:30,done_at:d(26),address:'Văn phòng chị Hoa – 88 Phan Đình Phùng',lat:G.a[0],lng:G.a[1]}),
+    J('j8',8,'c2','Cấu hình lại NVR xem từ xa qua app',{status:'moi',assignee_id:'u2',priority:'cao',mode:'remote',due_at:d(-6),quote:200000,est:2,age:3,description:'Khách gửi ảnh màn hình; xử lý qua TeamViewer.'}),
+    J('j9',9,'c4','Giao bộ camera đã cấu hình sẵn + hướng dẫn cài app',{status:'moi',assignee_id:'u4',mode:'delivery',due_at:d(-3),quote:3100000,est:1,age:2,description:'Đã test ở cửa hàng, khách tự gắn.'}),
+    J('j10',10,'c6','Lắp 8 camera + đầu ghi cho nhà hàng, kéo dây ngoài trời',{status:'dang_lam',assignee_id:'u1',priority:'cao',due_at:d(6),quote:18500000,est:24,progress:45,age:50,site_lat:15.1620,site_lng:108.8650,site_auto:true,description:'Khách yêu cầu xong trước cuối tuần có tiệc.'}),
+    J('j11',11,'c7','Chuông cửa có hình báo mất kết nối wifi',{status:'moi',assignee_id:'u3',priority:'cao',due_at:d(2),quote:150000,est:2,age:4}),
+    J('j12',12,'c8','Lắp hệ thống kiểm soát ra vào vân tay 2 cửa + phần mềm chấm công',{status:'dang_lam',assignee_id:'u3',due_at:d(-48),quote:24000000,est:40,progress:60,age:200,site_lat:15.2110,site_lng:108.8100,site_auto:true}),
+    J('j13',13,'c8','Hỗ trợ xuất báo cáo chấm công tháng 10 (online)',{status:'moi',mode:'remote',due_at:d(-24),quote:0,est:2,age:1}),
+    J('j14',14,'c9','Lắp 6 công tắc cảm ứng + hub, cấu hình kịch bản',{status:'cho_vat_tu',assignee_id:'u4',due_at:d(-30),quote:5200000,est:8,progress:40,age:72,description:'Thiếu 2 công tắc 3 nút, đã đặt hàng.'}),
+    J('j15',15,'c10','Sửa camera trong nhà bị mất tiếng',{status:'hoan_thanh',assignee_id:'u2',due_at:d(100),quote:250000,est:2,progress:100,age:110,done_at:d(96)}),
+    J('j16',16,'c7','Thay nguồn camera + dọn dây sau sửa shop',{status:'huy',assignee_id:'u4',due_at:d(50),quote:400000,est:2,age:60,description:'Khách báo hủy, đã tự thay.'}),
+    J('j17',17,'c9','Giao thêm 1 cảm biến cửa + hướng dẫn thêm vào app',{status:'hoan_thanh',assignee_id:'u2',mode:'delivery',due_at:d(20),quote:650000,est:1,progress:100,age:22,done_at:d(19)}),
+    J('j18',18,'c6','Camera sân sau mờ ban đêm sau mưa',{status:'moi',priority:'vua',due_at:d(-120),quote:0,est:2,age:6}),
+    J('j19',19,'c10','Lắp wifi mesh phủ 2 tầng',{status:'hoan_thanh',assignee_id:'u1',due_at:d(12),quote:2100000,est:4,progress:100,age:14,done_at:d(10)}),
+    J('j20',20,'c3','Thay 2 camera hỏng + kiểm tra đầu ghi (gấp, lễ hội trường)',{status:'moi',assignee_id:'u1',priority:'cao',due_at:H(16),quote:1700000,est:4,age:5})];
+  const L=(id,job,u,type,text,o)=>Object.assign({id,job_id:job,user_id:u,type,text,created_at:o.at},o);
+  DB.job_logs=[
+    L('l1','j1','u1','checkin','Có mặt tại công trình',{at:d(71),lat:G.a[0],lng:G.a[1],acc:12}), L('l2','j1','u1','note','Đã đi dây xong, đang cấu hình app cho khách.',{at:d(68)}), L('l3','j1','u1','checkout','Hoàn thành – rời công trình',{at:d(66),lat:G.a[0],lng:G.a[1],acc:9}),
+    L('l4','j7','u1','checkin','Có mặt tại công trình',{at:d(27.5),lat:G.a[0],lng:G.a[1],acc:15}), L('l5','j7','u1','checkout','Hoàn thành – rời công trình',{at:d(26),lat:G.a[0],lng:G.a[1],acc:10}),
+    L('l6','j6','u3','checkin','Có mặt tại công trình',{at:d(168),lat:G.c[0],lng:G.c[1],acc:8}), L('l7','j6','u3','checkout','Hoàn thành – rời công trình',{at:d(165),lat:G.c[0],lng:G.c[1],acc:8}),
+    L('l8','j2','u2','checkin','Có mặt tại công trình',{at:H(8),lat:G.b[0],lng:G.b[1],acc:20}), L('l9','j2','u2','note','Đã đi dây 3 vị trí, còn góc kho chờ khách dọn hàng.',{at:H(10)}), L('l10','j2','u2','checkout','Tạm nghỉ – rời công trình',{at:H(11),lat:G.b[0],lng:G.b[1],acc:18}), L('l11','j2','u2','checkin','Có mặt tại công trình',{at:H(13),lat:G.b[0],lng:G.b[1],acc:14}),
+    L('l12','j4','u3','checkin','Có mặt tại công trình',{at:d(21),lat:G.c[0],lng:G.c[1],acc:11}), L('l13','j4','u3','note','Hub lỗi cổng LAN, cần thay hub mới. Chờ kho.',{at:d(20.5)}), L('l14','j4','u3','checkout','Chờ vật tư – rời công trình',{at:d(20),lat:G.c[0],lng:G.c[1],acc:11}),
+    L('l17','j4','u3','checkin','Bắt đầu làm từ xa (phần việc xử lý online)',{at:d(18),remote:true}), L('l18','j4','u3','note','Đã cấu hình lại hub trên app từ cửa hàng, chờ khách xác nhận công tắc hoạt động.',{at:d(17.5)}), L('l19','j4','u3','checkout','Tạm dừng',{at:d(17)}),
+    L('l15','j3','u4','checkin','Có mặt tại công trình',{at:d(30),lat:G.d[0],lng:G.d[1],acc:16}), L('l16','j3','u4','checkout','Tự động đóng ca – phát hiện cách công trình 2140 m khi thao tác',{at:d(27),flag:'far',lat:15.1405,lng:108.8201,acc:12}),
+    L('l20','j10','u1','checkin','Có mặt tại công trình',{at:d(47),lat:15.1620,lng:108.8650,acc:9}), L('l21','j10','u1','note','Kéo xong dây 5/8 vị trí, mai làm tiếp phần sân.',{at:d(41)}), L('l22','j10','u1','checkout','Tạm nghỉ – rời công trình',{at:d(40),lat:15.1620,lng:108.8650,acc:9}),
+    L('l23','j10','u1','checkin','Có mặt tại công trình',{at:d(23),lat:15.1620,lng:108.8650,acc:11}), L('l24','j10','u1','checkout','Tạm nghỉ – rời công trình',{at:d(15),lat:15.1620,lng:108.8650,acc:11}),
+    L('l25','j12','u3','checkin','Có mặt tại công trình',{at:d(190),lat:15.2110,lng:108.8100,acc:7}), L('l26','j12','u3','checkout','Tạm nghỉ – rời công trình',{at:d(182),lat:15.2110,lng:108.8100,acc:7}), L('l27','j12','u3','checkin','Có mặt tại công trình',{at:d(100),lat:15.2110,lng:108.8100,acc:7}), L('l28','j12','u3','checkout','Quên bấm rời',{at:d(80),flag:'owner',closed_by:'u0'}),
+    L('l29','j14','u4','checkin','Có mặt tại công trình',{at:d(70),lat:15.1240,lng:108.8010,acc:13}), L('l30','j14','u4','note','Thiếu 2 công tắc 3 nút, đã báo chủ đặt hàng.',{at:d(66)}), L('l31','j14','u4','checkout','Chờ vật tư – rời công trình',{at:d(65),lat:15.1240,lng:108.8010,acc:13}),
+    L('l32','j15','u2','checkin','Có mặt tại công trình',{at:d(98),lat:15.1050,lng:108.7850,acc:22}), L('l33','j15','u2','checkout','Hoàn thành – rời công trình',{at:d(96),lat:15.1050,lng:108.7850,acc:22}),
+    L('l34','j17','u2','checkin','Giao hàng tại địa chỉ',{at:d(19.2),lat:15.1240,lng:108.8010,acc:10}), L('l35','j17','u2','checkout','Giao xong – rời',{at:d(19),lat:15.1240,lng:108.8010,acc:10}),
+    L('l36','j19','u1','checkin','Có mặt tại công trình',{at:d(13),lat:15.1050,lng:108.7850,acc:14}), L('l37','j19','u1','checkout','Hoàn thành – rời công trình',{at:d(10),lat:15.1050,lng:108.7850,acc:14}), L('l38','j19','u1','note','CHƯA THU TIỀN khi bàn giao: khách hẹn chuyển khoản tối',{at:d(10),flag:'unpaid'}),
+    L('l39','j11','u0','status','Giao cho Lê Tuấn Anh',{at:d(4)}), L('l40','j20','u0','status','Giao cho Nguyễn Văn Hiền',{at:d(5)})];
+  DB.job_items=[
+    {id:'ji1',job_id:'j1',item_id:'i1',qty:2,unit_price:850000,created_at:d(68)},{id:'ji2',job_id:'j1',item_id:'i5',qty:2,unit_price:90000,created_at:d(68)},
+    {id:'ji3',job_id:'j2',item_id:'i1',qty:4,unit_price:850000,created_at:d(6)},{id:'ji4',job_id:'j2',item_id:'i6',qty:60,unit_price:9000,created_at:d(6)},
+    {id:'ji5',job_id:'j6',item_id:'i4',qty:1,unit_price:3200000,created_at:d(166)},{id:'ji6',job_id:'j10',item_id:'i1',qty:8,unit_price:850000,created_at:d(46)},{id:'ji7',job_id:'j10',item_id:'i6',qty:150,unit_price:9000,created_at:d(46)},
+    {id:'ji8',job_id:'j19',item_id:'i7',qty:1,unit_price:2100000,created_at:d(12)},{id:'ji9',job_id:'j14',item_id:'i2',qty:4,unit_price:390000,created_at:d(69)},{id:'ji10',job_id:'j14',item_id:'i3',qty:1,unit_price:690000,created_at:d(69)}];
+  DB.expenses=[
+    {id:'e1',job_id:'j4',user_id:'u3',desc:'Ốc nở + băng keo – tiệm Thành Đạt',amount:45000,paid:false,created_at:d(20)},{id:'e2',job_id:'j2',user_id:'u2',desc:'Xăng xe + ống ruột gà',amount:120000,paid:true,created_at:d(5)},
+    {id:'e3',job_id:'j10',user_id:'u1',desc:'Thuê thang 2 ngày',amount:200000,paid:false,created_at:d(44)},{id:'e4',job_id:'j14',user_id:'u4',desc:'Nẹp dây + kẹp',amount:35000,paid:false,created_at:d(66)}];
+  DB.payments=[
+    {id:'p1',job_id:'j1',amount:2400000,method:'chuyen_khoan',note:'',user_id:'u1',created_at:d(66)},{id:'p2',job_id:'j2',amount:3000000,method:'chuyen_khoan',note:'Đặt cọc',user_id:'u0',created_at:d(50)},
+    {id:'p3',job_id:'j6',amount:3800000,method:'tien_mat',note:'',user_id:'u3',created_at:d(165)},{id:'p4',job_id:'j7',amount:300000,method:'tien_mat',note:'',user_id:'u1',created_at:d(26)},
+    {id:'p5',job_id:'j10',amount:8000000,method:'chuyen_khoan',note:'Đặt cọc 50%',user_id:'u0',created_at:d(49)},{id:'p6',job_id:'j12',amount:12000000,method:'chuyen_khoan',note:'Đợt 1',user_id:'u0',created_at:d(199)},
+    {id:'p7',job_id:'j15',amount:250000,method:'tien_mat',note:'Thu khi bàn giao',user_id:'u2',created_at:d(96)},{id:'p8',job_id:'j17',amount:650000,method:'tien_mat',note:'Thu khi bàn giao',user_id:'u2',created_at:d(19)}];
+  DB.acceptances=[
+    {id:'a1',job_id:'j1',content:'Lắp 2 camera ngoài trời\n- Đi dây nguồn ra cổng\n- Cấu hình app, khách xem được trên 2 điện thoại',note:'Bảo hành 12 tháng',customer_name:'Chị Hoa',signer:'Chị Hoa',mode:'sign',signature:null,extras:[],extras_priced:true,flags:[],signed_at:d(66),user_id:'u1',lat:G.a[0],lng:G.a[1],created_at:d(66)},
+    {id:'a2',job_id:'j6',content:'Lắp khóa vân tay cửa chính, đăng ký 4 vân tay + 2 thẻ',note:'Bảo hành 24 tháng',customer_name:'Biệt thự anh Long',signer:'Anh Long',mode:'sign',signature:null,extras:['Khách nhờ chỉnh lại bản lề cửa bị xệ'],extras_priced:false,flags:[],signed_at:d(165),user_id:'u3',lat:G.c[0],lng:G.c[1],created_at:d(165)},
+    {id:'a3',job_id:'j15',content:'Thay micro camera trong nhà, test lại tiếng',note:'',customer_name:'Cô Bảy',signer:'Cô Bảy (xác nhận qua Zalo)',mode:'photo',photos:[],chat_photo:null,extras:[],extras_priced:true,flags:['nogps'],signed_at:d(96),user_id:'u2',created_at:d(96)},
+    {id:'a4',job_id:'j17',content:'Giao hàng: Giao thêm 1 cảm biến cửa + hướng dẫn thêm vào app',note:'',customer_name:'Anh Khoa',signer:'Anh Khoa',mode:'photo',photos:[],delivery:true,extras:[],extras_priced:true,flags:[],signed_at:d(19),user_id:'u2',lat:15.1240,lng:108.8010,created_at:d(19)}];
+  // ---- bổ sung: mỗi KTV đủ các trạng thái (mới, đang làm/tạm dừng, chờ vật tư, từ xa, giao hàng, hoàn thành ký/ảnh, chưa thu, hủy, quá hạn, gấp)
+  const SITES=[[15.1214,108.8044],[15.1185,108.7936],[15.1300,108.8120],[15.1050,108.7850],[15.1620,108.8650],[15.2110,108.8100],[15.1240,108.8010]];
+  const CUST=['c1','c2','c3','c4','c5','c6','c7','c8','c9','c10'];
+  const TPL=[
+    {t:'Lắp 2 camera cổng + cấu hình app',st:'moi',prio:'cao',due:-1.5,quote:1900000,est:4},
+    {t:'Thay công tắc cảm ứng phòng ngủ',st:'moi',due:-5,quote:390000,est:2},
+    {t:'Lắp khóa vân tay cửa phụ',st:'dang_lam',due:3,quote:2900000,est:4,prog:55,sess:[[6,2]]},
+    {t:'Kéo wifi mesh tầng 3 + sân thượng',st:'cho_vat_tu',due:1,quote:2600000,est:4,prog:40,sess:[[30,26]],note:'Thiếu 1 bộ mesh, đã đặt.'},
+    {t:'Hướng dẫn khách xem lại camera qua app (online)',st:'moi',mode:'remote',prio:'cao',due:-0.5,quote:0,est:1},
+    {t:'Giao bộ chuông cửa có hình đã cấu hình',st:'moi',mode:'delivery',due:-2,quote:1250000,est:1},
+    {t:'Bảo trì định kỳ 4 camera + vệ sinh đầu ghi',st:'hoan_thanh',due:60,quote:600000,est:2,prog:100,sess:[[62,59]],acc:'sign',paid:true},
+    {t:'Sửa cảm biến cửa báo giả',st:'hoan_thanh',due:120,quote:200000,est:2,prog:100,sess:[[122,121]],acc:'photo',paid:true,flags:['quick']},
+    {t:'Lắp 3 đèn thông minh + kịch bản',st:'hoan_thanh',due:40,quote:1500000,est:4,prog:100,sess:[[42,38]],acc:'sign',paid:false},
+    {t:'Giao thêm 2 remote khóa cửa',st:'hoan_thanh',mode:'delivery',due:9,quote:300000,est:1,prog:100,sess:[[9.3,9]],acc:'delivery',paid:true},
+    {t:'Khách báo hủy: tự mua camera chỗ khác',st:'huy',due:15,quote:0,est:2},
+    {t:'Cấu hình lại NVR sau khi đổi modem (online)',st:'hoan_thanh',mode:'remote',due:7,quote:150000,est:1,prog:100,sess:[[7.5,6.8]],remote:true,acc:'photo',paid:true}];
+  let n=21, lid=100, pid=20, aid=10, jiid=20; const STAFF=['u1','u2','u3','u4'];
+  STAFF.forEach((u,si)=>{ TPL.forEach((tp,ti)=>{ const id='j'+n; const cid=CUST[(si*3+ti)%CUST.length]; const site=SITES[(si+ti)%SITES.length]; const age=Math.max(2,(tp.due>0?tp.due+30:40)+ti*3);
+    const done=tp.st==='hoan_thanh'?d(tp.due-1):null;
+    const job=J(id,n,cid,tp.t,{status:tp.st,assignee_id:u,priority:tp.prio||'vua',mode:tp.mode||'onsite',due_at:d(tp.due),quote:tp.quote,est:tp.est,progress:tp.prog||0,age,done_at:done,description:tp.note||''});
+    if(job.mode==='onsite'&&tp.sess){ job.site_lat=site[0]; job.site_lng=site[1]; job.site_auto=true; }
+    if(done){ job.lat=site[0]; job.lng=site[1]; }
+    DB.jobs.push(job);
+    (tp.sess||[]).forEach(([a,b])=>{ const geo=tp.remote?{}:{lat:site[0],lng:site[1],acc:10+si*3}; DB.job_logs.push(Object.assign({id:'l'+(lid++),job_id:id,user_id:u,type:'checkin',text:tp.remote?'Bắt đầu làm từ xa':(tp.mode==='delivery'?'Giao hàng tại địa chỉ':'Có mặt tại công trình'),created_at:d(a)},geo,tp.remote?{remote:true}:{})); DB.job_logs.push(Object.assign({id:'l'+(lid++),job_id:id,user_id:u,type:'checkout',text:tp.st==='hoan_thanh'?'Hoàn thành – rời công trình':tp.st==='cho_vat_tu'?'Chờ vật tư – rời công trình':'Tạm nghỉ – rời công trình',created_at:d(b)},geo)); });
+    if(tp.note) DB.job_logs.push({id:'l'+(lid++),job_id:id,user_id:u,type:'note',text:tp.note,created_at:d((tp.sess||[[20,19]])[0][1]+0.5)});
+    if(tp.st==='huy') DB.job_logs.push({id:'l'+(lid++),job_id:id,user_id:'u0',type:'status',text:'Mới → Hủy',created_at:d(tp.due)});
+    if(tp.acc){ const photo=tp.acc!=='sign'; DB.acceptances.push(Object.assign({id:'a'+(aid++),job_id:id,content:tp.t,note:photo?'':'Bảo hành 12 tháng',customer_name:cust(cid).name,signer:cust(cid).name,mode:photo?'photo':'sign',signature:null,photos:[],extras:ti===8?['Khách nhờ thêm 1 đèn hành lang']:[],extras_priced:ti!==8,flags:tp.flags||[],delivery:tp.acc==='delivery',remote:!!tp.remote,signed_at:done,user_id:u,created_at:done},tp.remote?{}:{lat:site[0],lng:site[1]})); }
+    if(tp.st==='hoan_thanh'&&tp.quote){ if(tp.paid) DB.payments.push({id:'p'+(pid++),job_id:id,amount:tp.quote,method:ti%2?'tien_mat':'chuyen_khoan',note:'Thu khi bàn giao',user_id:u,created_at:done}); else DB.job_logs.push({id:'l'+(lid++),job_id:id,user_id:u,type:'note',text:'CHƯA THU TIỀN khi bàn giao: khách hẹn thanh toán cuối tháng',flag:'unpaid',created_at:done}); }
+    if(tp.sess&&ti===2) DB.job_items.push({id:'ji'+(jiid++),job_id:id,item_id:'i4',qty:1,unit_price:3200000,created_at:d(tp.sess[0][0])});
+    if(tp.sess&&ti===6) DB.job_items.push({id:'ji'+(jiid++),job_id:id,item_id:'i5',qty:1,unit_price:90000,created_at:d(tp.sess[0][0])});
+    if(ti===3) DB.expenses.push({id:'e'+(10+si),job_id:id,user_id:u,desc:'Ốc vít, nẹp dây mua ngoài',amount:30000+si*5000,paid:si%2===0,created_at:d(tp.sess[0][1])});
+    n++; }); });
+  DB.notifications=[{id:'n1',user_id:'u0',from_id:'u2',title:'▶ Hải Dương đến công trình CV-0002',body:'Có mặt tại công trình',job_id:'j2',kind:'start',read:false,created_at:today(13)},{id:'n2',user_id:'u0',from_id:'u1',title:'₫ Chưa thu tiền CV-0019',body:'2.100.000 đ · khách hẹn chuyển khoản tối',job_id:'j19',kind:'money',read:false,created_at:d(10)},{id:'n3',user_id:'u1',from_id:'u0',title:'Bạn được giao việc CV-0020',body:'Thay 2 camera hỏng + kiểm tra đầu ghi · GẤP',job_id:'j20',kind:'urgent',read:false,created_at:d(5)},{id:'n4',user_id:'u3',from_id:'u0',title:'Bạn được giao việc CV-0011',body:'Chuông cửa có hình báo mất kết nối wifi · GẤP',job_id:'j11',kind:'urgent',read:true,created_at:d(4)},{id:'n5',user_id:'u0',from_id:'u3',title:'＋ Phát sinh tại CV-0006 chờ định giá',body:'Khách nhờ chỉnh lại bản lề cửa bị xệ',job_id:'j6',kind:'extra',read:false,created_at:d(165)}];
+  // j19 hoàn thành nhưng chưa có phiếu; j7 cũng chưa có phiếu
+}
+
+/* ===================== TRẠNG THÁI GIAO DIỆN ===================== */
+const S = { user:null, tab:'viec', jobFilter:{mine:false,status:'',q:''}, modal:null, period:'thang', perfUser:null };
+const me = () => S.user;
+const isOwner = () => me() && me().role==='owner';
+const userName = id => (DB.users.find(u=>u.id===id)||{}).name || '—';
+const shortName = id => { const n=userName(id); const p=n.split(' '); return p.length>1?p[p.length-2]+' '+p[p.length-1]:n; };
+const initials = id => userName(id).split(' ').pop().slice(0,2).toUpperCase();
+const cust = id => DB.customers.find(c=>c.id===id)||{};
+const setting = () => DB.settings[0] || {shop_name:'ACQ Smarthome', address:'', phone:''};
+const nextCode = () => { const n=DB.jobs.reduce((m,j)=>Math.max(m,parseInt((j.code||'').split('-')[1])||0),0)+1; return 'CV-'+String(n).padStart(4,'0'); };
+const jobTotals = j => ({
+  items: DB.job_items.filter(x=>x.job_id===j.id).reduce((s,x)=>s+(+x.qty||0)*(+x.unit_price||0),0),
+  itemCost: DB.job_items.filter(x=>x.job_id===j.id).reduce((s,x)=>{const it=DB.items.find(i=>i.id===x.item_id)||{}; return s+(+x.qty||0)*(+it.cost||0);},0),
+  exp: DB.expenses.filter(x=>x.job_id===j.id).reduce((s,x)=>s+(+x.amount||0),0),
+  paid: DB.payments.filter(x=>x.job_id===j.id).reduce((s,x)=>s+(+x.amount||0),0)
+});
+const isOverdue = j => j.due_at && !['hoan_thanh','huy'].includes(j.status) && new Date(j.due_at) < new Date();
+const isClosed = j => ['hoan_thanh','huy'].includes(j.status);
+const logOrder=(a,b)=>(new Date(a.created_at)-new Date(b.created_at))||((a.type==='checkout'?0:1)-(b.type==='checkout'?0:1));
+const openCheckin = (jobId,userId) => { const ls=DB.job_logs.filter(l=>l.job_id===jobId&&l.user_id===userId&&(l.type==='checkin'||l.type==='checkout')).sort(logOrder); const last=ls[ls.length-1]; return last&&last.type==='checkin'?last:null; };
+/* phiên làm việc tại công trình = cặp check-in → check-out */
+const MAX_MIN=600, FAR_M=300;
+function sessions(userId, from){
+  const ls=DB.job_logs.filter(l=>l.user_id===userId&&(l.type==='checkin'||l.type==='checkout')&&(!from||new Date(l.created_at)>=from)).sort(logOrder);
+  const out=[]; const open={};
+  for(const l of ls){ if(l.type==='checkin') open[l.job_id]=l; else if(open[l.job_id]){ const raw=(new Date(l.created_at)-new Date(open[l.job_id].created_at))/6e4; out.push({job_id:l.job_id,start:open[l.job_id].created_at,end:l.created_at,min:Math.min(raw,MAX_MIN),raw,flag:l.flag||(raw>MAX_MIN?'long':null),remote:isRemoteSession(open[l.job_id]),ci:open[l.job_id],co:l}); delete open[l.job_id]; } }
+  for(const k in open){ const raw=(Date.now()-new Date(open[k].created_at))/6e4; out.push({job_id:k,start:open[k].created_at,end:null,min:Math.min(raw,MAX_MIN),raw,open:true,flag:raw>MAX_MIN?'forgot':null,remote:isRemoteSession(open[k]),ci:open[k]}); }
+  return out;
+}
+const FLAG_TXT = {forgot:'quên bấm rời', long:'ca quá 10 giờ', far:'rời công trình không bấm', auto:'tự đóng khi bắt đầu việc khác', owner:'chủ đóng ca', far_start:'bắt đầu cách vị trí công trình đã ghim', nogps:'ca không có GPS', quick:'nghiệm thu dưới 10 phút sau khi bắt đầu', nosession:'không có ca bắt đầu', remote_only:'việc tại công trình nhưng chỉ có ca từ xa', unpaid:'chưa thu tiền khi bàn giao'};
+const mySessions = (jobId,uid) => sessions(uid).filter(x=>x.job_id===jobId);
+const canAccept = j => { if(isOwner()) return true; if(j.mode==='remote') return mySessions(j.id,me().id).length>0; if(j.mode==='delivery') return true; const ci=openCheckin(j.id,me().id); return !!(ci && !isRemoteSession(ci)); };
+const myOpenSessions = uid => DB.jobs.map(j=>({j,ci:openCheckin(j.id,uid)})).filter(x=>x.ci);
+function distM(a,b){ const R=6371000, toR=x=>x*Math.PI/180; const dLat=toR(b.lat-a.lat), dLng=toR(b.lng-a.lng); const h=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+/* kiểm tra lặng lẽ: nếu đang mở ca mà vị trí hiện tại cách điểm bắt đầu > FAR_M thì tự đóng ca và gắn cờ */
+async function silentGeoCheck(){
+  const open=myOpenSessions(me().id); if(!open.length) return;
+  const g=await getLocation(); if(!g) return; let closed=false;
+  for(const {j,ci} of open){ if(j.mode&&j.mode!=='onsite') continue; if(isRemoteSession(ci)) continue; if(ci.lat&&ci.lng){ const dm=Math.round(distM(ci,g)); if(dm>FAR_M&&g.acc<dm/2){ await Store.insert('job_logs',Object.assign({job_id:j.id,user_id:me().id,type:'checkout',text:`Tự động đóng ca – phát hiện cách công trình ${dm} m khi thao tác`,flag:'far'},g)); closed=true; } } }
+  if(closed){ await notify(owners(),'⚑ '+shortName(me().id)+' rời công trình không bấm','Ca tự đóng do thao tác cách công trình > '+FAR_M+' m',open[0].j.id,'flag'); toast('Bạn đang ở xa công trình nên ca đã tự đóng và được gắn cờ'); if(S.modal&&S.modal.jobId) openJob(S.modal.jobId,S.modal.jobTab); else render(); }
+}
+let toastT; function toast(msg){ let t=document.querySelector('.toast'); if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t);} t.textContent=msg; clearTimeout(toastT); toastT=setTimeout(()=>t.remove(),2600); }
+function fileToDataURL(file,max=900){ return new Promise(res=>{ const r=new FileReader(); r.onload=()=>{ const img=new Image(); img.onload=()=>{ const sc=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement('canvas'); c.width=img.width*sc; c.height=img.height*sc; c.getContext('2d').drawImage(img,0,0,c.width,c.height); res(c.toDataURL('image/jpeg',.8)); }; img.src=r.result; }; r.readAsDataURL(file); }); }
+function getLocation(){ return new Promise(res=>{ if(!navigator.geolocation) return res(null); let done=false; const fin=v=>{ if(!done){done=true;res(v);} }; try{ navigator.geolocation.getCurrentPosition(p=>fin({lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy)}),()=>fin(null),{enableHighAccuracy:true,timeout:12000,maximumAge:30000}); }catch(e){ fin(null); } setTimeout(()=>fin(null),13000); }); }
+
+/* ===================== THÔNG BÁO ===================== */
+const owners = () => DB.users.filter(u=>u.role==='owner'&&u.active!==false).map(u=>u.id);
+async function notify(to, title, body, jobId, kind){
+  const ids=[...new Set((Array.isArray(to)?to:[to]).filter(Boolean).filter(id=>id!==me().id))]; if(!ids.length) return;
+  for(const uid of ids) await Store.insert('notifications',{user_id:uid,from_id:me().id,title,body:body||'',job_id:jobId||null,kind:kind||'info',read:false});
+}
+const myNotifs = () => DB.notifications.filter(n=>n.user_id===me().id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+const unreadCount = () => myNotifs().filter(n=>!n.read).length;
+function openNotifs(){ const list=myNotifs().slice(0,60);
+  S.modal={html:`<div class="mhead"><h2>Thông báo</h2><button class="x" data-act="closemodal">×</button></div><div class="stack">
+    <div class="row"><button class="btn sm" data-act="readall">Đánh dấu đã đọc</button><button class="btn sm primary" data-act="enablepush">🔔 Bật thông báo đẩy</button><span class="small muted" id="pushstate"></span></div>
+    <div>${list.map(n=>{const j=DB.jobs.find(x=>x.id===n.job_id)||{}; return `<div class="log" style="cursor:pointer;${n.read?'':'background:var(--accent-soft);margin:0 -8px;padding:9px 8px;border-radius:8px'}" data-notif="${n.id}"><div class="av" style="background:${n.read?'var(--panel2)':'var(--accent)'};color:${n.read?'inherit':'var(--accent-fg)'}">${({done:'✓',start:'▶',stop:'■',assign:'👤',extra:'＋',money:'₫',flag:'⚑',urgent:'!'})[n.kind]||'•'}</div><div style="min-width:0"><div><b>${esc(n.title)}</b></div><div class="small">${esc(n.body)}</div><div class="small muted mono">${j.code?esc(j.code)+' · ':''}${fmtDT(n.created_at)}</div></div></div>`;}).join('')||'<div class="empty">Chưa có thông báo.</div>'}</div></div>`,
+    after(){ const el=document.getElementById('pushstate'); if(el) el.textContent=!('Notification' in window)?'Thiết bị không hỗ trợ':Notification.permission==='granted'?'Đã bật trên máy này':Notification.permission==='denied'?'Bị chặn trong cài đặt trình duyệt':'Chưa bật'; }};
+  render();
+}
+async function enablePush(){
+  if(!('Notification' in window)){ toast('Thiết bị không hỗ trợ thông báo'); return; }
+  const perm=await Notification.requestPermission(); if(perm!=='granted'){ toast('Chưa được cấp quyền thông báo'); return; }
+  try{ const reg=await navigator.serviceWorker?.getRegistration(); if(reg&&reg.pushManager&&CFG.vapidPublicKey){ const key=Uint8Array.from(atob(CFG.vapidPublicKey.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0)); const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key}); if(isRemote()){ const j=sub.toJSON(); await supa.from('push_subscriptions').upsert({endpoint:j.endpoint,user_id:me().id,keys:j.keys,ua:navigator.userAgent.slice(0,120)},{onConflict:'endpoint'}); } toast('Đã bật thông báo đẩy trên máy này'); } else toast(isRemote()?'Thiếu khóa VAPID trong config.js – chỉ nhận thông báo khi app đang mở':'Bản thử nghiệm: thông báo khi app mở; đẩy khi đóng app có ở bản triển khai'); }catch(e){ console.warn(e); toast('Không đăng ký được: '+(e.message||e)); }
+  openNotifs();
+}
+function showLocalNotification(n){ try{ if(!('Notification' in window)||Notification.permission!=='granted') return; const j=DB.jobs.find(x=>x.id===n.job_id)||{}; const opts={body:(j.code?j.code+' · ':'')+n.body,tag:n.id,icon:'icon-192.png'}; navigator.serviceWorker?.getRegistration().then(reg=>{ if(reg&&reg.showNotification) reg.showNotification(n.title,Object.assign(opts,{data:{job_id:n.job_id}})); else new Notification(n.title,opts); }).catch(()=>{ try{ new Notification(n.title,opts); }catch(e){} }); }catch(e){} }
+let notifSeen=new Set();
+function announceNew(){ const mine=myNotifs().filter(n=>!n.read&&!notifSeen.has(n.id)); mine.forEach(n=>notifSeen.add(n.id)); if(!mine.length) return; const n=mine[0]; toast('🔔 '+n.title+(mine.length>1?' (+'+(mine.length-1)+')':'')); if(document.visibilityState!=='visible') showLocalNotification(n); }
+
+/* ===================== KHUNG ===================== */
+const ICON = {
+  viec:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>',
+  kho:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-5 9 5v11H3z"/><path d="M9 20v-6h6v6"/></svg>',
+  thuchi:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  hieusuat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 13l4-4M12 2v3M9 2h6"/></svg>',
+  baocao:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>',
+  nhansu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 20a5 5 0 016-4.5"/></svg>'
+};
+function navItems(){ const n=[['viec','Việc'],['kho','Kho'],['hieusuat','Hiệu suất']]; if(isOwner()) n.push(['thuchi','Thu chi'],['baocao','Báo cáo'],['nhansu','Nhân sự']); else n.push(['thuchi','Chi của tôi']); return n; }
+function render(){
+  const root=document.getElementById('root'); const upd=document.getElementById('updbar'); if(upd) upd.remove();
+  if(!S.user){ root.innerHTML=renderLogin(); return; }
+  const nav=navItems(); if(!nav.some(n=>n[0]===S.tab)) S.tab='viec';
+  root.innerHTML=`<div id="app">
+    <nav class="rail"><div class="brand"><i></i>${esc(setting().shop_name)}</div>
+      ${nav.map(([k,l])=>`<button class="${S.tab===k?'active':''}" data-tab="${k}">${ICON[k]}${l}</button>`).join('')}
+      <div class="foot"><b>${esc(me().name)}</b><br>${isOwner()?'Chủ cửa hàng':'Kỹ thuật viên'}<br><a href="#" data-act="logout">Đăng xuất</a>${!isRemote()?' · <a href="#" data-act="reset">Nạp lại dữ liệu mẫu</a>':''}</div></nav>
+    <div class="main">
+      <div class="topbar"><span class="brand"><i></i>${esc(setting().shop_name)}</span><span class="sp"></span><button class="btn sm ghost" data-act="notifs" style="position:relative;padding:6px 8px" aria-label="Thông báo">🔔${unreadCount()?`<span class="badge">${unreadCount()}</span>`:''}</button><span class="avatar">${initials(me().id)}</span><button class="btn sm ghost" data-act="logout">Thoát</button></div>
+      ${!isRemote()?'<div class="note" style="margin-bottom:12px">Bản thử nghiệm: dữ liệu mẫu lưu trên máy này, chưa dùng chung nhiều người. Định vị GPS và tải ảnh phiếu hoạt động đầy đủ ở bản triển khai.</div>':''}
+      ${bannerHTML()}
+      <div id="view"></div>
+    </div>
+    <nav class="tabbar">${nav.map(([k,l])=>`<button class="${S.tab===k?'active':''}" data-tab="${k}">${ICON[k]}${l}</button>`).join('')}</nav>
+    ${S.tab==='viec'&&isOwner()?'<button class="fab" data-act="newjob">+ VIỆC MỚI</button>':''}
+    ${S.modal?`<div class="modal-bg" data-act="closemodal"><div class="modal ${S.modal.wide?'wide':''}">${S.modal.html}</div></div>`:''}
+  </div>`;
+  document.getElementById('view').innerHTML=({viec:renderJobs,kho:renderKho,thuchi:renderThuChi,hieusuat:renderHieuSuat,baocao:renderBaoCao,nhansu:renderNhanSu}[S.tab])();
+  if(S.modal && S.modal.after) S.modal.after();
+  if(window.__newVersionReady){ const b=document.createElement('div'); b.id='updbar'; b.className='toast'; b.style.cssText='bottom:auto;top:calc(8px + env(safe-area-inset-top,0px));background:var(--accent);color:var(--accent-fg);cursor:pointer;font-weight:600'; b.textContent='⬆ Có bản cập nhật mới – nhấn để tải lại'; b.onclick=()=>window.__applyUpdate&&window.__applyUpdate(); document.body.appendChild(b); }
+}
+function bannerHTML(){ const open=myOpenSessions(me().id); if(!open.length) return ''; return open.map(({j,ci})=>{ const min=(Date.now()-new Date(ci.created_at))/6e4; const warn=min>480; return `<div class="onsite ${warn?'warn':''}"><div style="min-width:0"><b>${j.mode==='remote'||isRemoteSession(ci)?'Đang làm từ xa':'Đang tại công trình'}</b> <span class="mono">${esc(j.code)}</span> · ${esc(j.title)}<div class="small">từ <span class="mono">${fmtT(ci.created_at)}</span> · ${fmtH(min)}${warn?' · nhớ bấm rời khi xong':''}</div></div><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-openjob="${j.id}">Mở</button><button class="btn sm ${warn?'danger':''}" data-quickout="${j.id}">■ Rời</button></div></div>`; }).join(''); }
+function renderLogin(){
+  const head=`<div class="brand" style="font-size:1.3rem;margin-bottom:4px"><i></i>${esc(setting().shop_name||'ACQ Smarthome')}</div><p class="eyebrow" style="margin-bottom:16px">Sổ việc · kho · thu chi · nghiệm thu</p>`;
+  if(isRemote()) return `<div class="login stack">${head}<form id="loginf" class="card stack"><label class="f">Email<input id="lemail" type="email" required autocomplete="username"></label><label class="f">Mật khẩu<input id="lpass" type="password" required autocomplete="current-password"></label><button class="btn primary big">Đăng nhập</button><p id="lerr" class="small" style="color:var(--bad)"></p></form></div>`;
+  return `<div class="login stack">${head}<p class="muted small">Bản thử nghiệm: chọn người để vào. Bản triển khai dùng email + mật khẩu riêng.</p><div class="row"><button class="btn sm" data-act="reset">↻ Nạp lại dữ liệu mẫu</button><span class="small muted">bản mẫu v${SEED_VERSION}</span></div>
+    ${DB.users.filter(u=>u.active!==false).map(u=>`<div class="u" data-login="${u.id}"><span class="avatar">${initials(u.id)}</span><div><div><b>${esc(u.name)}</b></div><div class="small muted">${u.role==='owner'?'Chủ cửa hàng':'Kỹ thuật viên'} · <span class="mono">${esc(u.phone||'')}</span></div></div></div>`).join('')}</div>`;
+}
+
+/* ===================== VIỆC ===================== */
+function renderJobs(){
+  const f=S.jobFilter; if(!isOwner()) f.mine=true; let list=DB.jobs.slice();
+  if(f.mine) list=list.filter(j=>j.assignee_id===me().id);
+  if(f.status) list=list.filter(j=>j.status===f.status);
+  if(f.q){ const q=f.q.toLowerCase(); list=list.filter(j=>[j.code,j.title,cust(j.customer_id).name,cust(j.customer_id).phone,jobAddr(j)].join(' ').toLowerCase().includes(q)); }
+  list.sort((a,b)=>{ if(isClosed(a)!==isClosed(b)) return isClosed(a)?1:-1; if(f.mine&&(a.seq||b.seq)) return (a.seq||999)-(b.seq||999); const pa=a.priority==='cao'?0:1, pb=b.priority==='cao'?0:1; if(pa!==pb) return pa-pb; const oa=isOverdue(a)?0:1, ob=isOverdue(b)?0:1; if(oa!==ob) return oa-ob; return (new Date(a.due_at||'2100')-new Date(b.due_at||'2100')); });
+  S._list=list.filter(j=>!isClosed(j)).map(j=>j.id);
+  const base=isOwner()?DB.jobs:DB.jobs.filter(j=>j.assignee_id===me().id); const open=base.filter(j=>!isClosed(j)); const over=open.filter(isOverdue); const onsite=DB.users.filter(u=>DB.jobs.some(j=>openCheckin(j.id,u.id)));
+  return `<div class="stack">
+    <div class="kpi"><div class="card hi"><div class="v">${open.length}</div><div class="l">Việc đang mở</div></div><div class="card ${over.length?'bad':''}"><div class="v" style="color:${over.length?'var(--bad)':'inherit'}">${over.length}</div><div class="l">Quá hạn</div></div>${isOwner()?`<div class="card"><div class="v">${DB.jobs.filter(j=>j.status==='moi'&&!j.assignee_id).length}</div><div class="l">Chưa phân công</div></div><div class="card ok"><div class="v">${onsite.length}</div><div class="l">KTV đang tại công trình</div></div>`:`<div class="card ok"><div class="v">${base.filter(j=>j.status==='hoan_thanh'&&j.done_at&&new Date(j.done_at)>=periodRangeOf('tuan')).length}</div><div class="l">Xong tuần này</div></div>`}</div>
+    <input class="inp" id="jq" placeholder="Tìm mã, tên khách, SĐT, nội dung…" value="${esc(f.q)}">
+    ${isOwner()?`<div class="row" style="gap:6px"><span class="eyebrow">KTV</span><span class="chip ${!f.mine?'active':''}" data-mine="1">Tất cả</span><span class="chip ${f.mine?'active':''}" data-mine="1">Việc tôi tự nhận</span></div>`:`<p class="small muted">Việc được giao cho bạn · dùng ▲▼ để tự sắp thứ tự trong ngày</p>`}
+    <div class="chips"><span class="eyebrow" style="align-self:center;margin-right:4px">Trạng thái</span><span class="chip ${!f.status?'active':''}" data-st="">Tất cả</span>${Object.entries(STATUS).map(([k,v])=>`<span class="chip ${f.status===k?'active':''}" data-st="${k}">${v}</span>`).join('')}</div>
+    <div class="stack">${list.length?list.map(jobCard).join(''):'<div class="empty">Không có việc nào khớp bộ lọc.</div>'}</div></div>`;
+}
+function jobCard(j){ const c=cust(j.customer_id); const acc=DB.acceptances.find(a=>a.job_id===j.id); const ci=j.assignee_id&&openCheckin(j.id,j.assignee_id); const od=isOverdue(j); const t=jobTotals(j);
+  const tags=[`<span class="mono">${esc(j.code)}</span>`,`<span class="pill s-${j.status}">${STATUS[j.status]}</span>`];
+  if(j.priority==='cao'&&!isClosed(j)) tags.push('<span class="urg">GẤP</span>');
+  if(j.mode&&j.mode!=='onsite') tags.push(`<span class="pill s-cho_vat_tu">${j.mode==='remote'?'Từ xa':'Giao hàng'}</span>`);
+  if(ci) tags.push('<span class="pill s-hoan_thanh">Đang làm</span>'); else if(j.status==='dang_lam') tags.push('<span>· tạm dừng</span>');
+  if(j.status==='hoan_thanh'){ tags.push(acc?(acc.mode==='photo'?'<span class="pill s-hoan_thanh">✓ ảnh</span>':'<span class="pill s-hoan_thanh">✓ ký</span>'):'<span class="pill s-dang_lam">chưa phiếu</span>'); if(isOwner()&&(j.quote||0)>t.paid) tags.push('<span class="pill s-dang_lam">chưa thu đủ</span>'); }
+  const meta=[]; meta.push(`<span>${esc(c.name||'—')}</span>`); if(jobAddr(j)) meta.push(`<span>${esc(jobAddr(j))}</span>`); meta.push(j.assignee_id?`<span>${esc(shortName(j.assignee_id))}</span>`:'<span style="color:var(--warn);flex:none">chưa giao</span>'); if(j.due_at&&!isClosed(j)) meta.push(`<span class="${od?'over':''}" style="flex:none">${od?'⚠ quá hạn ':''}${fmtDT(j.due_at)}</span>`);
+  return `<div class="card job p-${j.priority} ${od?'overdue':''} ${isClosed(j)?'closed':''}" data-job="${j.id}"><div class="bar"></div><div style="min-width:0">
+  <div class="l1">${tags.join(' ')}</div>
+  <div class="t">${esc(j.title)}</div>
+  ${!isClosed(j)&&(j.est||j.progress)?`<div class="prog"><div class="pb"><i style="width:${Math.min(100,+j.progress||0)}%"></i></div><span class="small muted mono" style="flex:none">${+j.progress||0}%${j.est?` · ${fmtH(jobMinutes(j))}/${j.est}h`:''}</span></div>`:''}
+  <div class="meta">${meta.join('<span class="sep">·</span>')}</div></div>
+  ${S.jobFilter.mine&&!isClosed(j)?`<span class="seqbtn"><button class="btn sm ghost" data-seq="${j.id}" data-dir="-1" title="Lên">▲</button><button class="btn sm ghost" data-seq="${j.id}" data-dir="1" title="Xuống">▼</button></span>`:''}</div>`; }
+function openNewJob(){
+  const staff=DB.users.filter(u=>u.active!==false);
+  const toLocal=dt=>new Date(dt-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16);
+  S.modal={html:`<div class="mhead"><h2>Việc mới</h2><button class="x" data-act="closemodal">×</button></div>
+  <form id="jobf" class="stack">
+    <div class="chips" id="modechips">${Object.entries(MODES).map(([k,l])=>`<span class="chip ${k==='onsite'?'active':''}" data-mode="${k}">${l}</span>`).join('')}</div>
+    <div class="grid2"><label class="f">Tên khách (gõ để gợi ý khách cũ)<input name="cname" list="custlist" required autocomplete="off"><datalist id="custlist">${DB.customers.map(c=>`<option value="${esc(c.name)}">${esc(c.phone||'')}</option>`).join('')}</datalist></label><label class="f">Số điện thoại (dán SĐT để tự ra tên)<input name="cphone" inputmode="tel" list="phonelist" autocomplete="off"><datalist id="phonelist">${DB.customers.filter(c=>c.phone).map(c=>`<option value="${esc(c.phone)}">${esc(c.name)}</option>`).join('')}</datalist></label></div>
+    <div id="custhint" class="small muted"></div>
+    <label class="f" id="f_addr">Địa chỉ công trình (chọn địa chỉ đã lưu hoặc gõ mới)<input name="caddr" list="addrlist" autocomplete="off"><datalist id="addrlist"></datalist></label>
+    <label class="f" id="f_maps">Link Google Maps / tọa độ khách gửi (tùy chọn)<input name="maps" placeholder="Dán link định vị khách gửi qua Zalo, hoặc 15.1214, 108.8044"></label>
+    <label class="f" id="f_title">Nội dung yêu cầu<input name="title" required placeholder="VD: Lắp 2 camera cổng"></label>
+    <div class="grid2"><label class="f">Mức độ<select name="priority"><option value="vua">Bình thường (hẹn sau 1 giờ)</option><option value="cao">Gấp (hẹn sau 30 phút)</option></select></label><label class="f" id="f_due">Hẹn khách<input name="due" type="datetime-local" value="${toLocal(new Date(Date.now()+60*6e4))}"></label></div>
+    <div class="grid2" id="f_est"><label class="f" hidden>Hình thức${modeSel('onsite')}<select name="type" hidden><option value="khac" selected>khac</option></select></label><label class="f">Ước tính thời gian${estSel('')}</label></div>
+    <label class="f">Ghi chú chi tiết<textarea name="description"></textarea></label>
+    <div class="grid2"><label class="f">Giao cho KTV<select name="assignee"><option value="">— Chưa phân công —</option>${staff.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></label>${isOwner()?'<label class="f">Giá chốt với khách (đ) — KTV sẽ được báo thu khi hoàn thành<input name="quote" inputmode="numeric" placeholder="0"></label>':''}</div>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closemodal">Hủy</button><button class="btn primary">Tạo việc</button></div></form>`,
+  after(){ const f=F(document.getElementById('jobf')); let dueTouched=false; f.due.addEventListener('input',()=>dueTouched=true);
+    f.priority.addEventListener('change',()=>{ if(dueTouched) return; f.due.value=toLocal(new Date(Date.now()+(f.priority.value==='cao'?30:60)*6e4)); });
+    const hint=document.getElementById('custhint'); const dl=document.getElementById('addrlist');
+    const applyCust=c=>{ const addrs=c?[c.address,...(c.sites||[]).map(x=>x.address)].filter(Boolean):[]; dl.innerHTML=[...new Set(addrs)].map(a=>`<option value="${esc(a)}">`).join(''); if(c){ const n=DB.jobs.filter(j=>j.customer_id===c.id).length; hint.innerHTML=`Khách cũ · ${n} việc trước · ${addrs.length} địa chỉ đã lưu`; if(!f.caddr.value&&addrs[0]) f.caddr.value=addrs[0]; } else hint.textContent=''; };
+    f.cphone.addEventListener('input',()=>{ const ph=f.cphone.value.replace(/\D/g,''); const c=DB.customers.find(x=>x.phone===ph); if(c){ f.cname.value=c.name; } applyCust(c); });
+    f.cname.addEventListener('input',()=>{ const nm=f.cname.value.trim().toLowerCase(); const matches=DB.customers.filter(x=>x.name.toLowerCase()===nm); const c=matches.length===1?matches[0]:null; if(c&&!f.cphone.value) f.cphone.value=c.phone||''; applyCust(c); });
+    f.caddr.addEventListener('focus',()=>{ if(!dl.innerHTML){ const ph=f.cphone.value.replace(/\D/g,''); applyCust(DB.customers.find(x=>x.phone===ph)); } });
+    const setMode=m=>{ f.mode.value=m; [...document.querySelectorAll('#modechips .chip')].forEach(c=>c.classList.toggle('active',c.dataset.mode===m)); const dlv=m==='delivery', rm=m==='remote'; document.getElementById('f_est').hidden=dlv; document.getElementById('f_addr').firstChild.textContent=dlv?'Địa chỉ giao hàng':rm?'Địa chỉ khách (tham khảo)':'Địa chỉ công trình (chọn địa chỉ đã lưu hoặc gõ mới)'; document.getElementById('f_maps').hidden=rm; document.getElementById('f_title').firstChild.textContent=dlv?'Hàng giao / nội dung bàn giao':rm?'Việc cần xử lý từ xa':'Nội dung yêu cầu'; f.title.placeholder=dlv?'VD: Bộ 4 camera đã cấu hình + hướng dẫn cài app':rm?'VD: Cấu hình lại NVR xem qua app':'VD: Lắp 2 camera cổng'; document.getElementById('f_due').firstChild.textContent=dlv?'Giờ giao':'Hẹn khách'; };
+    document.getElementById('modechips').addEventListener('click',e=>{ const c=e.target.closest('[data-mode]'); if(c) setMode(c.dataset.mode); }); }};
+  render();
+}
+async function rememberSiteAddr(c,addr,co){ if(!addr) return; const sites=(c.sites||[]).filter(x=>normAddr(x.address)!==normAddr(addr)); sites.push({address:addr,lat:co.lat,lng:co.lng}); await Store.update('customers',c.id,{sites}); }
+async function submitNewJob(f){
+  const phone=f.cphone.value.replace(/\D/g,''); let c=phone?DB.customers.find(x=>x.phone===phone):null; if(!c){ const nm=f.cname.value.trim().toLowerCase(); const ms=DB.customers.filter(x=>x.name.toLowerCase()===nm); if(ms.length===1) c=ms[0]; } const co=parseCoords(f.maps.value);
+  if(!c) c=await Store.insert('customers',{name:f.cname.value.trim(),phone,address:f.caddr.value.trim(),sites:[]});
+  else if(f.caddr.value.trim()&&!c.address) await Store.update('customers',c.id,{address:f.caddr.value.trim()});
+  if(co) await rememberSiteAddr(c,f.caddr.value.trim(),co);
+  const addr=f.caddr.value.trim(); const ks=knownSite(c,addr); const site=co||ks;
+  const j=await Store.insert('jobs',{code:nextCode(),customer_id:c.id,address:addr,site_lat:site?site.lat:null,site_lng:site?site.lng:null,site_auto:!co&&!!ks,type:'khac',priority:f.priority.value,title:f.title.value.trim(),description:f.description.value.trim(),assignee_id:f.assignee.value||null,due_at:f.due.value?new Date(f.due.value).toISOString():null,quote:f.quote?(+f.quote.value.replace(/\D/g,'')||0):0,mode:f.mode.value,est:+f.est.value||null,progress:0,status:'moi',created_by:me().id});
+  if(j.assignee_id) await notify(j.assignee_id,'Bạn được giao việc '+j.code,j.title+(j.priority==='cao'?' · GẤP':'')+(j.due_at?' · hẹn '+fmtDT(j.due_at):''),j.id,j.priority==='cao'?'urgent':'assign');
+  S.modal=null; toast('Đã tạo '+j.code+(j.mode==='delivery'?' · xuất hàng giao từ kho ở tab Vật tư':'')); openJob(j.id, j.mode==='delivery'?'vattu':undefined);
+}
+
+function openJob(id, tab){
+  const j=DB.jobs.find(x=>x.id===id); if(!j) return; const c=cust(j.customer_id); const t=jobTotals(j); tab=tab||(S.modal&&S.modal.jobId===id&&S.modal.jobTab)||'nhatky';
+  const staff=DB.users.filter(u=>u.active!==false); const mine=j.assignee_id===me().id; const canAct=isOwner()||mine||!j.assignee_id; const ci=openCheckin(j.id,me().id); const acc=DB.acceptances.find(a=>a.job_id===j.id);
+  const logHTML=l=>{ const cls=l.type==='checkin'?'ci':l.type==='checkout'?'co':''; const ic=l.type==='checkin'?'▶':l.type==='checkout'?'■':initials(l.user_id);
+    return `<div class="log ${cls}"><div class="av">${ic}</div><div style="min-width:0"><div class="small muted">${esc(shortName(l.user_id))} · <span class="mono">${fmtDT(l.created_at)}</span>${l.type==='status'?' · đổi trạng thái':''}${isRemoteSession(l)?' · <span class="pill s-cho_vat_tu">từ xa</span>':''}</div><div>${esc(l.text)}${l.flag?` <span class="pill s-huy" style="color:var(--bad)">⚑ ${FLAG_TXT[l.flag]||l.flag}</span>`:''}</div>${l.lat?`<div class="geo">📍 <a href="${mapLink(l.lat,l.lng)}" target="_blank" rel="noopener">${l.lat}, ${l.lng}</a> ±${l.acc||'?'}m${isOwner()&&l.type==='checkin'?(j.site_lat===l.lat&&j.site_lng===l.lng?' · <b style="color:var(--ok)">vị trí công trình</b>':` · <a href="#" data-pin="${l.id}">ghim làm vị trí công trình</a>`):''}</div>`:(l.type==='checkin'||l.type==='checkout')?'<div class="geo">📍 không lấy được vị trí</div>':''}${l.photo?`<img src="${l.photo}" alt="ảnh hiện trường">`:''}</div></div>`; };
+  const body={
+    nhatky:()=>`<div class="stack"><form id="logf" class="row"><input class="inp grow" name="text" placeholder="Ghi nhật ký / tình trạng…" required><label class="btn sm">📷<input type="file" name="photo" accept="image/*" capture="environment" hidden></label><button class="btn sm primary">Gửi</button></form>
+      <div>${DB.job_logs.filter(l=>l.job_id===j.id).map(logHTML).join('')||'<div class="empty">Chưa có nhật ký.</div>'}</div></div>`,
+    vattu:()=>`<div class="stack"><form id="itemf" class="row"><select class="inp grow" name="item" required><option value="">Chọn vật tư trong kho…</option>${DB.items.map(i=>`<option value="${i.id}">${esc(i.name)} (còn ${i.qty} ${esc(i.unit)})</option>`).join('')}</select><input class="inp" name="qty" type="number" step="any" min="0.1" value="1" style="width:80px"><button class="btn sm primary">Xuất</button></form>
+      <div class="twrap"><table><tr><th>Vật tư</th><th class="r">SL</th>${isOwner()?'<th class="r">Đơn giá</th><th class="r">Thành tiền</th>':''}<th></th></tr>${DB.job_items.filter(x=>x.job_id===j.id).map(x=>{const it=DB.items.find(i=>i.id===x.item_id)||{name:'(đã xóa)'};return `<tr><td>${esc(it.name)}</td><td class="r num">${x.qty} ${esc(it.unit||'')}</td>${isOwner()?`<td class="r num">${fmtVND(x.unit_price)}</td><td class="r num">${fmtVND(x.qty*x.unit_price)}</td>`:''}<td class="r"><button class="btn sm ghost" data-delji="${x.id}">✕</button></td></tr>`;}).join('')||`<tr><td colspan="5" class="empty">Chưa xuất vật tư.</td></tr>`}</table></div>
+      ${isOwner()?`<p class="small muted">Giá bán vật tư <b class="num">${fmtVND(t.items)}</b> · giá vốn <span class="num">${fmtVND(t.itemCost)}</span>. Xuất vật tư tự trừ tồn kho.</p>`:'<p class="small muted">Xuất vật tư tự trừ tồn kho.</p>'}${j.mode==='delivery'?'<p class="small muted">Hàng giao cho khách lấy từ kho tại đây; danh sách này in lên phiếu bàn giao.</p>':''}</div>`,
+    chi:()=>{ const exps=DB.expenses.filter(x=>x.job_id===j.id&&(isOwner()||x.user_id===me().id)); return `<div class="stack"><p class="small muted">Khoản KTV tự bỏ tiền mua ngoài; chủ thanh toán lại sau.</p>
+      <form id="expf" class="row"><input class="inp grow" name="desc" placeholder="Mua gì, ở đâu" required><input class="inp" name="amount" inputmode="numeric" placeholder="Số tiền" required style="width:110px"><label class="btn sm">🧾<input type="file" name="receipt" accept="image/*" capture="environment" hidden></label><button class="btn sm primary">Ghi</button></form>
+      <div class="twrap"><table><tr><th>Khoản chi</th><th>KTV</th><th class="r">Tiền</th><th>TT</th></tr>${exps.map(e=>`<tr><td>${esc(e.desc)}<div class="small muted mono">${fmtDT(e.created_at)}</div>${e.receipt?`<img src="${e.receipt}" style="max-width:120px;border-radius:6px;margin-top:4px" alt="hóa đơn">`:''}</td><td>${esc(shortName(e.user_id))}</td><td class="r num">${fmtVND(e.amount)}</td><td>${e.paid?'<span class="pill s-hoan_thanh">Đã TT</span>':isOwner()?`<button class="btn sm" data-payexp="${e.id}">Thanh toán</button>`:'<span class="pill s-dang_lam">Chờ</span>'}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Chưa có chi mua ngoài.</td></tr>'}</table></div></div>`; },
+    thu:()=>`<div class="stack">${isOwner()?`<div class="kpi"><div class="card"><div class="v">${fmtVND(j.quote)}</div><div class="l">Giá chốt</div></div><div class="card ok"><div class="v" style="color:var(--ok)">${fmtVND(t.paid)}</div><div class="l">Đã thu</div></div><div class="card ${j.quote-t.paid>0?'bad':''}"><div class="v" style="color:${j.quote-t.paid>0?'var(--bad)':'inherit'}">${fmtVND(j.quote-t.paid)}</div><div class="l">Còn lại</div></div></div>`:`<div class="kpi"><div class="card ok"><div class="v" style="color:var(--ok)">${fmtVND(DB.payments.filter(p=>p.job_id===j.id&&p.user_id===me().id).reduce((a,p)=>a+(+p.amount),0))}</div><div class="l">Tôi đã thu hộ</div></div></div><p class="small muted">Chỉ ghi số tiền khách đưa trực tiếp cho bạn (theo hướng dẫn của chủ). Giá trị công việc do chủ quản lý.</p>`}
+      ${isOwner()?`<form id="quotef" class="row"><label class="f grow">Giá chốt với khách<input name="quote" inputmode="numeric" value="${j.quote||0}"></label><button class="btn sm" style="align-self:flex-end">Lưu giá</button></form>`:''}
+      <form id="payf" class="row"><input class="inp grow" name="amount" inputmode="numeric" placeholder="Số tiền thu" required><select class="inp" name="method" style="width:auto"><option value="tien_mat">Tiền mặt</option><option value="chuyen_khoan">Chuyển khoản</option></select><button class="btn sm primary">Thu</button></form>
+      <div class="twrap"><table><tr><th>Ngày</th><th>Hình thức</th><th>Người thu</th><th class="r">Tiền</th></tr>${DB.payments.filter(p=>p.job_id===j.id).map(p=>`<tr><td class="mono">${fmtDT(p.created_at)}</td><td>${p.method==='tien_mat'?'Tiền mặt':'Chuyển khoản'}${p.note?' · '+esc(p.note):''}</td><td>${esc(shortName(p.user_id))}</td><td class="r num">${fmtVND(p.amount)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Chưa thu tiền.</td></tr>'}</table></div></div>`,
+    nghiemthu:()=>`<div class="stack">${acc?`<div class="card" style="border-color:var(--ok)">${acc.flags&&acc.flags.length?`<div style="margin-bottom:6px">${acc.flags.map(f=>`<span class="pill s-huy" style="color:var(--bad)">⚑ ${FLAG_TXT[f]||f}</span>`).join(' ')}</div>`:''}<b>${acc.mode==='photo'?'✓ Đã nghiệm thu bằng ảnh'+(acc.chat_photo?' + tin nhắn khách':''):'✓ Khách đã ký nghiệm thu'}</b> lúc <span class="mono">${fmtDT(acc.signed_at)}</span> · ${acc.mode==='photo'?'xác nhận':'người ký'}: ${esc(acc.signer||'')}${acc.lat?`<div class="geo">📍 <a href="${mapLink(acc.lat,acc.lng)}" target="_blank" rel="noopener">${acc.lat}, ${acc.lng}</a></div>`:''}${acc.extras&&acc.extras.length?`<div style="margin-top:8px"><b>Phát sinh KTV ghi tại hiện trường:</b><ul style="margin:4px 0 0 18px;padding:0">${acc.extras.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>${acc.extras_priced?'<span class="pill s-hoan_thanh">Đã định giá</span>':isOwner()?`<span class="pill s-dang_lam">Chờ định giá</span> <button class="btn sm" data-act="priced" data-id="${acc.id}">Đã cập nhật giá chốt</button>`:'<span class="pill s-dang_lam">Chờ chủ định giá</span>'}</div>`:''}<div class="row" style="margin-top:8px"><button class="btn sm primary" data-act="viewacc" data-id="${acc.id}">Xem / tải phiếu</button></div></div>`:!canAccept(j)?`<div class="note">${j.mode==='remote'?'Chưa thể lập phiếu: bạn chưa bấm "Bắt đầu" trên việc này.':'Chưa thể lập phiếu: phải đang có mặt tại công trình (bấm "Bắt đầu tại công trình" trong lần đến này). Việc làm dở nhiều ngày thì mỗi ngày đến đều bấm Bắt đầu, ngày nghiệm thu cũng vậy.'}</div>`:`<p class="small muted">Phiếu xác nhận các việc đã hoàn thành, không ghi tiền. Khách có mặt: ký trên điện thoại; khách vắng mặt: chụp ảnh tại chỗ; việc từ xa: ảnh màn hình kết quả. Có thể ghi thêm việc phát sinh để chủ định giá.</p><button class="btn primary big" data-act="newacc">Lập phiếu nghiệm thu</button>`}</div>`
+  };
+  const remote=j.mode==='remote'; const spent=jobMinutes(j); const others=myOpenSessions(me().id).filter(o=>o.j.id!==j.id);
+  const ciRemoteOnsite = ci && isRemoteSession(ci) && j.mode==='onsite';
+  const actions = !canAct||isClosed(j) ? '' : j.mode==='delivery' ? `<div class="action"><button class="btn ok big" data-act="quickdeliver">📦 Giao & xác nhận (chụp ảnh bàn giao)</button></div><p class="small muted">Một thao tác tại chỗ: ảnh bàn giao chụp trực tiếp, tự ghi GPS và giờ; khách ký thêm nếu tiện.</p>` : (ci
+    ? (ciRemoteOnsite ? `<div class="action two"><button class="btn primary big" data-act="checkin">▶ Đến công trình (ghi GPS)</button><button class="btn big" data-act="checkout">Tạm dừng</button></div><p class="small muted">Đang làm từ xa từ <span class="mono">${fmtT(ci.created_at)}</span>. Nghiệm thu chỉ khi có mặt tại công trình.</p>` : `<div class="action two"><button class="btn ok big" data-act="finish">■ Hoàn thành & lập phiếu</button><button class="btn big" data-act="checkout">${remote?'Tạm dừng':'Tạm rời công trình'}</button></div><p class="small muted">${remote||isRemoteSession(ci)?'Đang làm từ xa':'Đang tại công trình'} từ <span class="mono">${fmtT(ci.created_at)}</span>${ci.lat?` · <a href="${mapLink(ci.lat,ci.lng)}" target="_blank" rel="noopener">vị trí</a>`:''}</p>`)
+    : `<div class="action"><button class="btn primary big" data-act="checkin">▶ ${j.status==='dang_lam'?'Tiếp tục':'Bắt đầu'}${remote?' (làm từ xa)':' tại công trình (ghi GPS)'}</button>${remote?'':`<button class="btn ghost" data-act="checkin-remote" style="justify-content:center">🖥 Làm phần việc này từ xa (online)</button>`}</div>${others.length?`<p class="small muted">Mỗi lúc chỉ ở một công trình: việc ${esc(others[0].j.code)} đang mở sẽ tự tạm dừng (không tính cờ).</p>`:''}`)
+    + (j.mode==='delivery'?'':`<div class="card" style="padding:10px 12px"><div class="row" style="justify-content:space-between"><span class="small muted">Đã làm <b class="mono">${fmtH(spent)}</b>${j.est?` / ước tính <b class="mono">${j.est} giờ</b>${spent>j.est*60*1.2?' <span class="flag">vượt dự toán</span>':''}`:''}</span><span class="small muted">Tiến độ <b class="mono" id="progv">${+j.progress||0}%</b></span></div><input type="range" id="prog" min="0" max="100" step="5" value="${+j.progress||0}" style="width:100%;accent-color:var(--accent)"></div>`);
+  S.modal={wide:true,jobId:id,jobTab:tab,html:`<div class="mhead"><div><div class="eyebrow">${esc(j.code)} · ${MODES[j.mode||'onsite']} · ${PRIO[j.priority]||''}</div><h2>${esc(j.title)}</h2></div><button class="x" data-act="closemodal">×</button></div>
+    <div class="stack">
+      <div class="card" style="padding:10px 12px"><div class="row" style="justify-content:space-between"><div style="min-width:0"><b>${esc(c.name||'—')}</b> · <span class="mono">${esc(c.phone||'')}</span><div class="small muted">${esc(jobAddr(j))}${j.address&&c.address&&normAddr(j.address)!==normAddr(c.address)?` <span class="pill s-cho_vat_tu">địa điểm khác</span>`:''}</div></div>${isOwner()?`<button class="btn sm ghost" data-act="editjob">Sửa</button>`:''}</div>${j.description?`<p class="small" style="margin-top:6px">${esc(j.description)}</p>`:''}
+        <div class="row small muted" style="margin-top:6px"><span>KTV: <b>${j.assignee_id?esc(userName(j.assignee_id)):'chưa phân công'}</b></span>${j.due_at?`<span class="${isOverdue(j)?'over':''}">Hẹn <span class="mono">${fmtDT(j.due_at)}</span></span>`:''}<span class="pill s-${j.status}">${STATUS[j.status]}</span>${j.site_lat?`<span>📍 <a href="${mapLink(j.site_lat,j.site_lng)}" target="_blank" rel="noopener">vị trí công trình${j.site_auto?' (tự ghim)':''}</a></span>`:'<span class="muted">📍 chưa có mốc – lần Bắt đầu đầu tiên sẽ tự ghim</span>'}</div></div>
+      ${actions}
+      ${canAct?`<details><summary class="small muted" style="cursor:pointer">Đổi trạng thái thủ công</summary><div class="steps" style="margin-top:8px">${Object.entries(STATUS).filter(([k])=>isOwner()||!['hoan_thanh','huy'].includes(k)).map(([k,v])=>`<button class="${j.status===k?'cur s-'+k:''}" data-st="${k}">${v}</button>`).join('')}</div>${isOwner()?'':'<p class="small muted" style="margin-top:6px">Hoàn thành chỉ qua phiếu xác nhận; hủy do chủ quyết.</p>'}</details>`:''}
+      ${isOwner()?`<label class="f">Phân công<select id="assign"><option value="">— Chưa phân công —</option>${staff.map(u=>`<option value="${u.id}" ${j.assignee_id===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></label>`:''}
+      <div class="tabs">${[['nhatky','Nhật ký'],['vattu','Vật tư'],['chi','Chi ngoài'],['thu','Thu tiền'],['nghiemthu','Nghiệm thu']].map(([k,v])=>`<button class="${tab===k?'active':''}" data-jtab="${k}">${v}</button>`).join('')}</div>
+      <div id="jtab">${body[tab]()}</div></div>`};
+  render();
+}
+async function doCheck(type, text, extra){
+  const j=DB.jobs.find(x=>x.id===S.modal.jobId); toast('Đang lấy vị trí GPS…');
+  const g=await getLocation();
+  if(type==='checkin'){ for(const o of myOpenSessions(me().id)){ if(o.j.id===j.id&&isRemoteSession(o.ci)&&!S.remoteNext) await Store.insert('job_logs',Object.assign({job_id:j.id,user_id:me().id,type:'checkout',text:'Kết thúc ca từ xa – đến công trình'},g||{})); else if(o.j.id!==j.id) await Store.insert('job_logs',Object.assign({job_id:o.j.id,user_id:me().id,type:'checkout',text:'Tạm dừng – chuyển sang '+j.code},g||{})); } if(j.mode==='remote'||S.remoteNext) text='Bắt đầu làm từ xa'+(j.mode!=='remote'?' (phần việc xử lý online)':''); }
+  const remoteSess = type==='checkin' && (j.mode==='remote' || !!S.remoteNext); S.remoteNext=false;
+  const extraFlag={};
+  if(type==='checkin'&&g&&!remoteSess&&!j.site_lat){ if(g.acc<=60){ await Store.update('jobs',j.id,{site_lat:g.lat,site_lng:g.lng,site_auto:true}); await rememberSite(j,g.lat,g.lng); text+=' (tự ghim làm vị trí công trình)'; } else text+=` (GPS ±${g.acc} m, chưa đủ chính xác để ghim)`; }
+  if(type==='checkin'&&j.site_lat&&g&&!remoteSess){ const dm=Math.round(distM({lat:j.site_lat,lng:j.site_lng},g)); if(dm>FAR_M){ extraFlag.flag='far_start'; text+=` (cách vị trí đã ghim ${dm} m)`; } }
+  await Store.insert('job_logs',Object.assign({job_id:j.id,user_id:me().id,type,text},g||{},extraFlag,remoteSess?{remote:true}:{}));
+  if(type==='checkin'&&j.status==='moi'){ await Store.update('jobs',j.id,{status:'dang_lam'}); }
+  if(!isOwner()) await notify(owners(),(type==='checkin'?'▶ ':'■ ')+shortName(me().id)+' '+(type==='checkin'?(remoteSess?'bắt đầu từ xa':'đến công trình'):'rời công trình')+' '+j.code,text+(g?'':' (không GPS)'),j.id,extraFlag.flag?'flag':type==='checkin'?'start':'stop');
+  if(type==='checkin'&&!j.assignee_id) await Store.update('jobs',j.id,{assignee_id:me().id});
+  if(extra) await extra(g);
+  toast(g?`Đã ghi ${type==='checkin'?'bắt đầu':'rời công trình'} · GPS ±${g.acc}m`:'Đã ghi (không lấy được GPS – kiểm tra quyền vị trí)');
+  return g;
+}
+function openEditJob(j){
+  S.modal={jobId:j.id,html:`<div class="mhead"><h2>Sửa việc ${esc(j.code)}</h2><button class="x" data-act="closemodal">×</button></div><form id="editjobf" class="stack">
+    <label class="f">Nội dung<input name="title" value="${esc(j.title)}" required></label><label class="f">Ghi chú<textarea name="description">${esc(j.description||'')}</textarea></label>
+    <div class="grid2"><label class="f">Mức độ<select name="priority">${Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${j.priority===k?'selected':''}>${v}</option>`).join('')}</select></label></div>
+    <div class="grid2"><label class="f">Hình thức${modeSel(j.mode||'onsite')}</label><label class="f">Ước tính thời gian${estSel(j.est)}</label></div>
+    <label class="f">Địa chỉ công trình<input name="address" value="${esc(j.address||cust(j.customer_id).address||'')}"></label>
+    <label class="f">Vị trí công trình (link Google Maps hoặc tọa độ; để trống = giữ nguyên)<input name="maps" value="${j.site_lat?j.site_lat+', '+j.site_lng:''}"></label>
+    <label class="f">Hẹn khách<input name="due" type="datetime-local" value="${j.due_at?new Date(new Date(j.due_at)-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16):''}"></label>
+    <div class="row" style="justify-content:space-between"><button type="button" class="btn danger" data-act="deljob">Xóa việc</button><button class="btn primary">Lưu</button></div></form>`};
+  render();
+}
+
+/* ===================== PHIẾU NGHIỆM THU (ảnh canvas) ===================== */
+function wrapText(ctx,text,x,y,maxW,lh){ for(const para of String(text).split('\n')){ let line=''; for(const w of para.split(' ')){ const test=line?line+' '+w:w; if(ctx.measureText(test).width>maxW&&line){ ctx.fillText(line,x,y); y+=lh; line=w; } else line=test; } ctx.fillText(line,x,y); y+=lh; } return y; }
+function drawSheet(j,a){
+  const c=cust(j.customer_id), st=setting(), items=DB.job_items.filter(x=>x.job_id===j.id);
+  const W=900, pad=56, cv=document.createElement('canvas'); cv.width=W; cv.height=2600; const ctx=cv.getContext('2d');
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,cv.height); ctx.fillStyle='#111'; ctx.textBaseline='top';
+  const font=(w,s)=>ctx.font=`${w} ${s}px "Be Vietnam Pro", system-ui, sans-serif`;
+  let y=pad;
+  font(700,22); ctx.fillText(st.shop_name.toUpperCase(),pad,y); font(400,15); ctx.fillStyle='#444'; ctx.fillText([st.address,st.phone?'ĐT: '+st.phone:''].filter(Boolean).join(' · '),pad,y+30);
+  ctx.textAlign='right'; ctx.fillText('Số: '+j.code,W-pad,y); ctx.fillText('Ngày: '+fmtD(a.signed_at),W-pad,y+22); ctx.textAlign='left'; ctx.fillStyle='#111';
+  y+=62; ctx.fillRect(pad,y,W-2*pad,2); y+=22;
+  font(700,26); ctx.textAlign='center'; ctx.fillText(a.delivery?'PHIẾU BÀN GIAO HÀNG':'PHIẾU XÁC NHẬN HOÀN THÀNH CÔNG VIỆC',W/2,y); font(400,15); ctx.fillStyle='#444'; ctx.fillText(MODES[j.mode||'onsite']||'',W/2,y+34); ctx.textAlign='left'; ctx.fillStyle='#111'; y+=70;
+  font(400,16); const lh=24; const kv=(k,v)=>{ font(700,16); ctx.fillText(k,pad,y); const kw=ctx.measureText(k).width+8; font(400,16); y=wrapText(ctx,v,pad+kw,y,W-2*pad-kw,lh); };
+  kv('Khách hàng:',(a.customer_name||c.name||'')+(c.phone?'   ĐT: '+c.phone:'')); kv('Địa chỉ:',jobAddr(j)); kv('Kỹ thuật viên:',userName(j.assignee_id)); y+=6;
+  font(700,16); ctx.fillText('Các công việc đã hoàn thành:',pad,y); y+=lh; font(400,16); y=wrapText(ctx,a.content||j.title,pad,y,W-2*pad,lh); y+=8;
+  if(items.length){ font(700,14); ctx.fillStyle='#f0f0f0'; ctx.fillRect(pad,y,W-2*pad,30); ctx.fillStyle='#111'; ctx.fillText('VẬT TƯ, THIẾT BỊ BÀN GIAO',pad+8,y+8); ctx.textAlign='right'; ctx.fillText('SỐ LƯỢNG',W-pad-8,y+8); ctx.textAlign='left'; y+=30; font(400,15);
+    for(const x of items){ const it=DB.items.find(i=>i.id===x.item_id)||{}; ctx.fillText(it.name||'',pad+8,y+7); ctx.textAlign='right'; ctx.fillText(x.qty+' '+(it.unit||''),W-pad-8,y+7); ctx.textAlign='left'; ctx.fillStyle='#ddd'; ctx.fillRect(pad,y+29,W-2*pad,1); ctx.fillStyle='#111'; y+=30; } y+=10; }
+  if(a.extras&&a.extras.length){ font(700,16); ctx.fillText('Công việc phát sinh tại hiện trường (sẽ báo giá riêng):',pad,y); y+=lh; font(400,16); y=wrapText(ctx,a.extras.map(x=>'+ '+x).join('\n'),pad,y,W-2*pad,lh); y+=6; }
+  if(a.note){ font(400,15); y=wrapText(ctx,'Ghi chú / bảo hành: '+a.note,pad,y,W-2*pad,22); }
+  y+=8; font(400,14); ctx.fillStyle='#444'; y=wrapText(ctx,'Khách hàng xác nhận công việc đã hoàn thành đúng yêu cầu, thiết bị hoạt động bình thường tại thời điểm bàn giao.',pad,y,W-2*pad,20); ctx.fillStyle='#111'; y+=14;
+  const photoMode=a.mode==='photo'; const imgs=S.sheetImgs||{};
+  if(photoMode||(a.delivery&&a.photos&&a.photos.length)){ font(700,14); ctx.fillStyle='#f0f0f0'; ctx.fillRect(pad,y,W-2*pad,30); ctx.fillStyle='#111'; ctx.fillText(a.delivery?'ẢNH BÀN GIAO HÀNG':a.remote?'ẢNH MÀN HÌNH KẾT QUẢ (việc xử lý từ xa)':'ẢNH NGHIỆM THU (khách vắng mặt tại thời điểm bàn giao)',pad+8,y+8); y+=40;
+    const ph=(a.photos||[]).slice(0,6); const cols=3, gap=12, tw=(W-2*pad-gap*(cols-1))/cols, th=tw*0.75;
+    ph.forEach((src,i)=>{ const x=pad+(i%cols)*(tw+gap), yy=y+Math.floor(i/cols)*(th+28); const im=imgs[src]; ctx.fillStyle='#eee'; ctx.fillRect(x,yy,tw,th); if(im){ const sc=Math.max(tw/im.width,th/im.height); const sw=tw/sc, sh=th/sc; try{ ctx.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh,x,yy,tw,th); }catch(e){} } ctx.fillStyle='#444'; font(400,12); ctx.fillText(`Ảnh ${i+1} · ${fmtDT(a.signed_at)}`+(a.lat?` · ${a.lat}, ${a.lng}`:''),x,yy+th+6); ctx.fillStyle='#111'; });
+    y+=Math.ceil(ph.length/cols)*(th+28)+6;
+    if(a.chat_photo){ font(700,14); ctx.fillText('Tin nhắn khách xác nhận:',pad,y); y+=22; const im=imgs[a.chat_photo]; const ch=220, cw=im?Math.min(W-2*pad,ch*im.width/im.height):160; ctx.fillStyle='#eee'; ctx.fillRect(pad,y,cw,ch); if(im){ try{ ctx.drawImage(im,pad,y,cw,ch); }catch(e){} } ctx.fillStyle='#111'; y+=ch+16; } }
+  const colW=(W-2*pad)/2; font(700,15); ctx.textAlign='center'; ctx.fillText('KỸ THUẬT VIÊN',pad+colW/2,y); ctx.fillText(photoMode?'XÁC NHẬN CỦA KHÁCH':'KHÁCH HÀNG',pad+colW*1.5,y); font(400,13); ctx.fillStyle='#666'; ctx.fillText('(ký, ghi rõ họ tên)',pad+colW/2,y+22); ctx.fillText(photoMode?'(xác nhận từ xa / người có mặt)':'(ký trên màn hình)',pad+colW*1.5,y+22); ctx.fillStyle='#111';
+  const sigY=y+50; if(a.signature&&imgs[a.signature]){ try{ ctx.drawImage(imgs[a.signature],pad+colW+20,sigY,colW-40,120); }catch(e){} }
+  if(photoMode){ font(400,14); ctx.fillStyle='#444'; const lines=a.remote?['Việc xử lý từ xa, xác nhận','bằng ảnh màn hình kết quả.',a.chat_photo?'Khách đã xác nhận qua tin nhắn.':'Chưa có xác nhận bằng tin nhắn.']:['Nghiệm thu bằng ảnh hiện trường','kèm giờ chụp và tọa độ GPS.',a.chat_photo?'Khách đã xác nhận qua tin nhắn.':'Chưa có xác nhận bằng tin nhắn.']; lines.forEach((l,i)=>ctx.fillText(l,pad+colW*1.5,sigY+20+i*20)); ctx.fillStyle='#111'; }
+  font(400,16); ctx.fillText(userName(j.assignee_id),pad+colW/2,sigY+128); ctx.fillText(a.signer||'',pad+colW*1.5,sigY+128); ctx.textAlign='left'; y=sigY+170;
+  font(400,12); ctx.fillStyle='#666'; ctx.fillText(`Ký lúc ${fmtDT(a.signed_at)}`+(a.lat?`  ·  Vị trí ${a.lat}, ${a.lng}`:''),pad,y); y+=30;
+  const out=document.createElement('canvas'); out.width=W; out.height=y; out.getContext('2d').drawImage(cv,0,0); return out;
+}
+function openAcceptance(jobId, accId){
+  const j=DB.jobs.find(x=>x.id===jobId), c=cust(j.customer_id), a=accId?DB.acceptances.find(x=>x.id===accId):null;
+  if(a){ S.modal={wide:true,jobId,html:`<div class="mhead"><h2>Phiếu nghiệm thu ${esc(j.code)}</h2><button class="x" data-act="closemodal">×</button></div><div class="stack"><div id="sheetbox"></div><div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="dlsheet">Tải ảnh phiếu</button></div><p class="small muted">Nhấn giữ ảnh để lưu hoặc gửi Zalo cho khách. ${!isRemote()?'Nút tải chỉ hoạt động ở bản triển khai.':''}</p></div>`,
+      after(){ const box=document.getElementById('sheetbox'); const img=new Image(); img.className='sheetimg'; img.alt='Phiếu nghiệm thu'; box.appendChild(img);
+        const srcs=[a.signature,a.chat_photo,...(a.photos||[])].filter(Boolean); S.sheetImgs={}; let left=srcs.length; const draw=()=>{ const cv=drawSheet(j,a); img.src=cv.toDataURL('image/png'); S.sheetCanvas=cv; };
+        if(!left) draw(); srcs.forEach(src=>{ const im=new Image(); im.onload=()=>{ S.sheetImgs[src]=im; if(--left===0) draw(); }; im.onerror=()=>{ if(--left===0) draw(); }; im.src=src; }); }};
+    render(); return; }
+  const remote=j.mode==='remote'; const work=j.title+DB.job_logs.filter(l=>l.job_id===j.id&&l.type==='note').map(l=>'\n- '+l.text).join('');
+  const due=(j.quote||0)-jobTotals(j).paid;
+  S.modal={wide:true,jobId,html:`<div class="mhead"><h2>Lập phiếu nghiệm thu ${esc(j.code)}</h2><button class="x" data-act="closemodal">×</button></div><div class="stack">
+    ${due>0?`<div class="note" style="font-size:1rem"><b>💵 Khi hoàn thành cần thu của khách: ${fmtVND(due)}</b>${jobTotals(j).paid?` (đã cọc ${fmtVND(jobTotals(j).paid)})`:''}</div>`:''}
+    ${remote?`<div class="note info">Việc làm từ xa: xác nhận bằng ảnh màn hình kết quả (tải lên) và tin nhắn khách, không ký.</div>`:`<div class="chips" id="accmode"><span class="chip active" data-accmode="sign">Khách ký tại chỗ</span><span class="chip" data-accmode="photo">Khách vắng mặt · nghiệm thu bằng ảnh</span></div>`}
+    <label class="f">Các công việc đã hoàn thành (mỗi dòng một việc)<textarea id="acc_content" style="min-height:110px">${esc(work)}</textarea></label>
+    <label class="f">Công việc phát sinh tại hiện trường (mỗi dòng một việc; chủ sẽ định giá sau)<textarea id="acc_extras" style="min-height:60px" placeholder="VD: Thay thêm 1 nguồn 12V hỏng&#10;Khách nhờ kéo thêm dây mạng ra phòng ngủ"></textarea></label>
+    <label class="f">Ghi chú / bảo hành<input id="acc_note" placeholder="VD: Bảo hành 12 tháng thiết bị"></label>
+    <div id="acc_sign" ${remote?'hidden':''}><label class="f">Khách hàng ký xác nhận<div class="sig-wrap"><canvas id="sig" width="700" height="300"></canvas></div></label>
+      <div class="row" style="margin-top:8px"><input class="inp grow" id="acc_signer" placeholder="Họ tên người ký" value="${esc(c.name||'')}"><button type="button" class="btn sm" data-act="clearsig">Ký lại</button></div></div>
+    <div id="acc_photo" ${remote?'':'hidden'} class="stack"><p class="small muted">${remote?'Tải lên ít nhất 1 ảnh màn hình kết quả (thiết bị đã hoạt động, app khách xem được…). Nếu khách đã nhắn xác nhận, đính ảnh tin nhắn.':'Chụp ít nhất 1 ảnh thiết bị đã lắp / hiện trường ngay tại chỗ bằng camera trong app (không nhận ảnh có sẵn). Mỗi ảnh được đóng dấu giờ chụp, tọa độ GPS, mã việc và tên KTV. Nếu khách đã nhắn Zalo xác nhận, chụp màn hình tin nhắn đính kèm.'}</p>
+      <div class="row">${remote?`<label class="btn primary">🖥 Ảnh màn hình kết quả<input type="file" id="acc_shots" accept="image/*" multiple hidden></label>`:`<button type="button" class="btn primary" data-act="livecam">📷 Chụp trực tiếp</button>`}<label class="btn">💬 Ảnh tin nhắn khách xác nhận<input type="file" id="acc_chat" accept="image/*" hidden></label></div>
+      <div id="acc_thumbs" class="row"></div>
+      <input class="inp" id="acc_witness" placeholder="Khách xác nhận qua (Zalo/điện thoại), hoặc người có mặt tại chỗ" value="${esc(c.name||'')}"></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-act="closemodal">Hủy</button><button class="btn ok" data-act="saveacc">Lưu phiếu & hoàn thành</button></div></div>`,
+    after(){ S.accPhotos=[]; S.accChat=null; S.accMode=remote?'photo':'sign'; S.accRemote=remote;
+      const sh=document.getElementById('acc_shots'); if(sh) sh.addEventListener('change',async e=>{ for(const f of e.target.files) S.accPhotos.push(await fileToDataURL(f,1000)); e.target.value=''; thumbs(); });
+      const cv=document.getElementById('sig'); const ctx=cv.getContext('2d'); ctx.lineWidth=3; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#102a6b'; let drawing=false; cv._dirty=false;
+      const pos=e=>{const r=cv.getBoundingClientRect(); return [(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height];};
+      cv.addEventListener('pointerdown',e=>{drawing=true; cv.setPointerCapture(e.pointerId); const [x,y]=pos(e); ctx.beginPath(); ctx.moveTo(x,y); e.preventDefault();});
+      cv.addEventListener('pointermove',e=>{if(!drawing) return; const [x,y]=pos(e); ctx.lineTo(x,y); ctx.stroke(); cv._dirty=true; e.preventDefault();});
+      cv.addEventListener('pointerup',()=>drawing=false); cv.addEventListener('pointercancel',()=>drawing=false);
+      const thumbs=()=>{ const b=document.getElementById('acc_thumbs'); b.innerHTML=S.accPhotos.map((p,i)=>`<div style="position:relative"><img src="${p}" style="width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--line)" alt="ảnh ${i+1}"><button type="button" class="btn sm ghost" data-rmphoto="${i}" style="position:absolute;top:-6px;right:-6px;padding:0 6px;background:var(--panel)">×</button></div>`).join('')+(S.accChat?`<div style="position:relative"><img src="${S.accChat}" style="width:84px;height:84px;object-fit:cover;border-radius:8px;border:2px solid var(--accent)" alt="tin nhắn xác nhận"><span class="pill s-moi" style="position:absolute;bottom:-6px;left:0">Zalo</span></div>`:''); };
+      S.accThumbs=thumbs;
+      document.getElementById('acc_chat').addEventListener('change',async e=>{ if(e.target.files[0]) S.accChat=await fileToDataURL(e.target.files[0],1000); e.target.value=''; thumbs(); });
+      document.getElementById('acc_thumbs').addEventListener('click',e=>{ const b=e.target.closest('[data-rmphoto]'); if(b){ S.accPhotos.splice(+b.dataset.rmphoto,1); thumbs(); } });
+      const am=document.getElementById('accmode'); if(am) am.addEventListener('click',e=>{ const c=e.target.closest('[data-accmode]'); if(!c) return; S.accMode=c.dataset.accmode; [...document.querySelectorAll('[data-accmode]')].forEach(x=>x.classList.toggle('active',x===c)); document.getElementById('acc_sign').hidden=S.accMode!=='sign'; document.getElementById('acc_photo').hidden=S.accMode!=='photo'; }); }};
+  render();
+}
+async function saveAcceptance(){
+  const j=DB.jobs.find(x=>x.id===S.modal.jobId); const photoMode=S.accMode==='photo'; const cv=document.getElementById('sig');
+  if(!photoMode && !cv._dirty){ toast('Khách chưa ký trên màn hình'); return; }
+  if(photoMode && !S.accPhotos.length){ toast('Cần ít nhất 1 ảnh nghiệm thu'); return; }
+  const btn=document.querySelector('[data-act="saveacc"]'); if(btn){ btn.disabled=true; btn.textContent='Đang lấy GPS…'; }
+  const g=await getLocation();
+  const extras=document.getElementById('acc_extras').value.split('\n').map(x=>x.trim()).filter(Boolean);
+  const base={job_id:j.id,content:document.getElementById('acc_content').value,note:document.getElementById('acc_note').value,customer_name:cust(j.customer_id).name,extras,extras_priced:false,signed_at:now(),user_id:me().id,mode:photoMode?'photo':'sign',remote:!!S.accRemote};
+  if(photoMode){ base.signer=document.getElementById('acc_witness').value; base.photos=S.accPhotos.slice(0,6); base.chat_photo=S.accChat||null; base.signature=null; }
+  else { base.signer=document.getElementById('acc_signer').value; base.signature=cv.toDataURL('image/png'); }
+  const ss=mySessions(j.id,me().id); const flags=[]; if(!ss.length) flags.push('nosession'); else { if(j.mode==='onsite'&&!ss.some(x=>!x.remote)) flags.push('remote_only'); else if(j.mode!=='remote'&&!ss.some(x=>!x.remote&&x.ci&&x.ci.lat)) flags.push('nogps'); const total=ss.reduce((acc,x)=>acc+x.min,0); if(j.mode!=='remote'&&j.mode!=='delivery'&&total<10) flags.push('quick'); }
+  if(j.site_lat&&g&&distM({lat:j.site_lat,lng:j.site_lng},g)>FAR_M) flags.push('far_start');
+  base.flags=flags;
+  const a=await Store.insert('acceptances',Object.assign(base,g||{}));
+  if(openCheckin(j.id,me().id)) await Store.insert('job_logs',Object.assign({job_id:j.id,user_id:me().id,type:'checkout',text:'Hoàn thành – rời công trình'},g||{}));
+  if(j.status!=='hoan_thanh'){ await Store.insert('job_logs',{job_id:j.id,user_id:me().id,type:'status',text:STATUS[j.status]+(photoMode?' → Hoàn thành (nghiệm thu bằng ảnh)':' → Hoàn thành (khách ký nghiệm thu)')}); await Store.update('jobs',j.id,Object.assign({status:'hoan_thanh',done_at:now()},g?{lat:g.lat,lng:g.lng}:{})); }
+  if(extras.length) await Store.insert('job_logs',{job_id:j.id,user_id:me().id,type:'note',text:'PHÁT SINH tại hiện trường: '+extras.join('; ')+' (chờ chủ định giá)'});
+  await notify(owners(),'✓ '+shortName(me().id)+' hoàn thành '+j.code+(flags.length?' (có cờ)':''),j.title+(photoMode?' · nghiệm thu bằng ảnh':' · khách đã ký'),j.id,flags.length?'flag':'done');
+  if(extras.length) await notify(owners(),'＋ Phát sinh tại '+j.code+' chờ định giá',extras.join('; '),j.id,'extra');
+  toast(g?'Đã lưu phiếu · GPS ±'+g.acc+'m':'Đã lưu phiếu (không lấy được GPS)'); afterComplete(j.id,a.id);
+}
+async function downloadSheet(){
+  const cv=S.sheetCanvas; if(!cv) return; const name='nghiem-thu-'+(DB.jobs.find(x=>x.id===S.modal.jobId)||{}).code+'.png';
+  try{ const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null; if(dl){ const blob=await new Promise(r=>cv.toBlob(r,'image/png')); await dl.save({filename:name,data:blob}); return; } }catch(e){ if(e&&e.code==='not_granted') return; }
+  try{ const blob=await new Promise(r=>cv.toBlob(r,'image/png')); if(navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([blob],name,{type:'image/png'})]})){ await navigator.share({files:[new File([blob],name,{type:'image/png'})],title:'Phiếu nghiệm thu'}); return; } }catch(e){}
+  const a=document.createElement('a'); a.download=name; a.href=cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ===================== THU TIỀN KHI HOÀN THÀNH ===================== */
+function afterComplete(jobId, accId){
+  const j=DB.jobs.find(x=>x.id===jobId); const due=(j.quote||0)-jobTotals(j).paid;
+  if(due<=0){ openAcceptance(jobId,accId); return; }
+  S.modal={jobId,accId,html:`<div class="mhead"><h2>💵 Thu tiền khách</h2></div><div class="stack">
+    <div class="kpi"><div class="card bad"><div class="v" style="color:var(--warn)">${fmtVND(due)}</div><div class="l">Cần thu ngay khi bàn giao${jobTotals(j).paid?' (đã cọc '+fmtVND(jobTotals(j).paid)+')':''}</div></div></div>
+    <label class="f">Số tiền thực thu (đ)<input id="col_amount" inputmode="numeric" value="${due}"></label>
+    <div class="action two"><button class="btn ok big" data-act="collect" data-method="tien_mat">Đã thu tiền mặt</button><button class="btn ok big" data-act="collect" data-method="chuyen_khoan">Đã thu chuyển khoản</button></div>
+    <details><summary class="small muted" style="cursor:pointer">Chưa thu được</summary><div class="stack" style="margin-top:8px"><input class="inp" id="col_reason" placeholder="Lý do (khách hẹn trả sau, chủ đã thỏa thuận…)"><button class="btn danger" data-act="collect-no">Ghi nhận chưa thu</button></div></details></div>`};
+  render();
+}
+async function collectDone(method){
+  const j=DB.jobs.find(x=>x.id===S.modal.jobId); const accId=S.modal.accId;
+  if(method){ const amt=+String(document.getElementById('col_amount').value).replace(/\D/g,''); if(!amt){ toast('Nhập số tiền'); return; } await Store.insert('payments',{job_id:j.id,amount:amt,method,user_id:me().id,note:'Thu khi bàn giao'}); await Store.insert('job_logs',{job_id:j.id,user_id:me().id,type:'note',text:'Đã thu '+fmtVND(amt)+(method==='tien_mat'?' tiền mặt':' chuyển khoản')+' khi bàn giao'}); toast('Đã ghi thu '+fmtVND(amt)); await notify(owners(),'₫ '+shortName(me().id)+' đã thu '+fmtVND(amt)+' · '+j.code,method==='tien_mat'?'Tiền mặt':'Chuyển khoản',j.id,'money'); }
+  else { const r=document.getElementById('col_reason').value.trim(); await Store.insert('job_logs',{job_id:j.id,user_id:me().id,type:'note',text:'CHƯA THU TIỀN khi bàn giao'+(r?': '+r:''),flag:'unpaid'}); await notify(owners(),'₫ Chưa thu tiền '+j.code,fmtVND((j.quote||0)-jobTotals(j).paid)+(r?' · '+r:''),j.id,'money'); toast('Đã ghi: chưa thu'); }
+  openAcceptance(j.id,accId);
+}
+
+/* ===================== GIAO HÀNG NHANH ===================== */
+function openQuickDeliver(jobId){
+  const j=DB.jobs.find(x=>x.id===jobId), c=cust(j.customer_id);
+  S.modal={jobId,html:`<div class="mhead"><div><div class="eyebrow">${esc(j.code)} · Giao hàng</div><h2>${esc(j.title)}</h2></div><button class="x" data-act="closemodal">×</button></div><div class="stack">
+    <p class="small muted">${esc(c.name||'')} · ${esc(jobAddr(j))}</p>
+    <div class="row"><button type="button" class="btn primary big" data-act="livecam">📷 Chụp ảnh bàn giao</button></div><div id="acc_thumbs" class="row"></div>
+    <input class="inp" id="acc_note" placeholder="Ghi chú (tùy chọn): giao cho ai, tình trạng…">
+    <details><summary class="small muted" style="cursor:pointer">Khách ký (nếu tiện)</summary><div class="sig-wrap" style="margin-top:8px"><canvas id="sig" width="700" height="300"></canvas></div><div class="row" style="margin-top:6px"><input class="inp grow" id="acc_signer" placeholder="Họ tên người nhận" value="${esc(c.name||'')}"><button type="button" class="btn sm" data-act="clearsig">Ký lại</button></div></details>
+    <button class="btn ok big" data-act="savedeliver">✓ Giao xong</button></div>`,
+    after(){ S.accPhotos=[]; S.accChat=null; const thumbs=()=>{ document.getElementById('acc_thumbs').innerHTML=S.accPhotos.map((p,i)=>`<img src="${p}" style="width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--line)" alt="ảnh ${i+1}">`).join(''); }; S.accThumbs=thumbs;
+      const cv=document.getElementById('sig'); const ctx=cv.getContext('2d'); ctx.lineWidth=3; ctx.lineCap='round'; ctx.strokeStyle='#102a6b'; let drawing=false; cv._dirty=false; const pos=e=>{const r=cv.getBoundingClientRect(); return [(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height];};
+      cv.addEventListener('pointerdown',e=>{drawing=true; cv.setPointerCapture(e.pointerId); const [x,y]=pos(e); ctx.beginPath(); ctx.moveTo(x,y); e.preventDefault();}); cv.addEventListener('pointermove',e=>{if(!drawing) return; const [x,y]=pos(e); ctx.lineTo(x,y); ctx.stroke(); cv._dirty=true; e.preventDefault();}); cv.addEventListener('pointerup',()=>drawing=false); }};
+  render();
+}
+async function saveDeliver(){
+  const j=DB.jobs.find(x=>x.id===S.modal.jobId); if(!S.accPhotos.length){ toast('Cần 1 ảnh bàn giao chụp trực tiếp'); return; }
+  const btn=document.querySelector('[data-act="savedeliver"]'); if(btn){ btn.disabled=true; btn.textContent='Đang lấy GPS…'; }
+  const g=await getLocation(); const cv=document.getElementById('sig'); const signed=cv&&cv._dirty;
+  const extraFlag={}; if(j.site_lat&&g&&distM({lat:j.site_lat,lng:j.site_lng},g)>FAR_M) extraFlag.flag='far_start';
+  if(!j.site_lat&&g&&g.acc<=60){ await Store.update('jobs',j.id,{site_lat:g.lat,site_lng:g.lng,site_auto:true}); await rememberSite(j,g.lat,g.lng); }
+  await Store.insert('job_logs',Object.assign({job_id:j.id,user_id:me().id,type:'checkin',text:'Giao hàng tại địa chỉ'},g||{},extraFlag));
+  await Store.insert('job_logs',Object.assign({job_id:j.id,user_id:me().id,type:'checkout',text:'Giao xong – rời'},g||{}));
+  const flags=[]; if(!g) flags.push('nogps'); if(extraFlag.flag) flags.push('far_start');
+  const a=await Store.insert('acceptances',Object.assign({job_id:j.id,content:'Giao hàng: '+j.title,note:document.getElementById('acc_note').value,customer_name:cust(j.customer_id).name,signer:document.getElementById('acc_signer').value,mode:signed?'sign':'photo',signature:signed?cv.toDataURL('image/png'):null,photos:S.accPhotos.slice(0,6),extras:[],extras_priced:true,flags,delivery:true,signed_at:now(),user_id:me().id},g||{}));
+  await Store.insert('job_logs',{job_id:j.id,user_id:me().id,type:'status',text:STATUS[j.status]+' → Hoàn thành (giao hàng)'});
+  await notify(owners(),'📦 '+shortName(me().id)+' đã giao '+j.code,j.title,j.id,'done');
+  await Store.update('jobs',j.id,Object.assign({status:'hoan_thanh',done_at:now(),progress:100},g?{lat:g.lat,lng:g.lng}:{}));
+  toast('Đã giao xong'); afterComplete(j.id,a.id);
+}
+
+/* ===================== CAMERA TRỰC TIẾP (chống tải ảnh có sẵn) ===================== */
+let camStream=null;
+async function openCamera(onShot, meta){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ toast('Trình duyệt không hỗ trợ camera'); return; }
+  const box=document.createElement('div'); box.className='cam'; box.innerHTML=`<div class="stamp" id="camstamp">Đang lấy vị trí…</div><video autoplay playsinline muted></video><div class="bar2"><button class="btn sm ghost" style="color:#e8eef5;border-color:#3b4a5c" data-cam="flip">Đổi camera</button><button class="shut" data-cam="shot" aria-label="Chụp"></button><div style="min-width:80px;text-align:right"><span id="camcount" class="mono">0 ảnh</span><br><button class="btn sm ghost" style="color:#e8eef5;border-color:#3b4a5c;margin-top:4px" data-cam="close">Xong</button></div></div>`;
+  document.body.appendChild(box); const video=box.querySelector('video'); let facing='environment', n=0, geo=null;
+  const start=async()=>{ if(camStream) camStream.getTracks().forEach(t=>t.stop()); try{ camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1280}},audio:false}); video.srcObject=camStream; }catch(e){ box.remove(); toast(isRemote()?'Không mở được camera – hãy cho phép quyền Camera cho ứng dụng':'Bản thử nghiệm không được cấp quyền camera; ở bản triển khai sẽ mở camera trực tiếp'); return false; } return true; };
+  if(!await start()) return;
+  getLocation().then(g=>{ geo=g; document.getElementById('camstamp').textContent=(g?`📍 ${g.lat}, ${g.lng} ±${g.acc}m`:'📍 không có GPS')+' · '+meta; });
+  const close=()=>{ if(camStream) camStream.getTracks().forEach(t=>t.stop()); camStream=null; box.remove(); };
+  box.addEventListener('click',e=>{ const b=e.target.closest('[data-cam]'); if(!b) return;
+    if(b.dataset.cam==='close') close();
+    if(b.dataset.cam==='flip'){ facing=facing==='environment'?'user':'environment'; start(); }
+    if(b.dataset.cam==='shot'){ const vw=video.videoWidth||1280, vh=video.videoHeight||960; const sc=Math.min(1,1000/Math.max(vw,vh)); const c=document.createElement('canvas'); c.width=Math.round(vw*sc); c.height=Math.round(vh*sc); const ctx=c.getContext('2d'); ctx.drawImage(video,0,0,c.width,c.height);
+      const lines=[fmtDT(now())+' · '+meta, geo?`${geo.lat}, ${geo.lng} ±${geo.acc}m`:'GPS: không có']; ctx.font=`600 ${Math.round(c.width/42)}px "JetBrains Mono", monospace`; const lh=Math.round(c.width/30); ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(0,c.height-lh*lines.length-14,c.width,lh*lines.length+14); ctx.fillStyle='#fff'; lines.forEach((l,i)=>ctx.fillText(l,12,c.height-lh*(lines.length-i)-2));
+      onShot(c.toDataURL('image/jpeg',.82),geo); n++; document.getElementById('camcount').textContent=n+' ảnh'; video.style.opacity='.3'; setTimeout(()=>video.style.opacity='1',120); } });
+}
+
+/* ===================== KHO ===================== */
+function renderKho(){
+  const q=(S.khoQ||'').toLowerCase(); const list=DB.items.filter(i=>!q||(i.name+' '+(i.sku||'')).toLowerCase().includes(q)); const low=DB.items.filter(i=>+i.qty<=+i.min_qty);
+  return `<div class="stack"><div class="row"><h1 class="grow">Kho vật tư</h1>${isOwner()?'<button class="btn primary sm" data-act="newitem">+ Vật tư</button>':''}</div>
+    ${low.length?`<div class="note">⚠ ${low.length} mặt hàng dưới mức tồn tối thiểu: ${low.map(i=>esc(i.name)).join(', ')}</div>`:''}
+    <input class="inp" id="khoq" placeholder="Tìm vật tư…" value="${esc(S.khoQ||'')}">
+    <div class="card twrap" style="padding:0"><table><tr><th>Vật tư</th><th class="r">Tồn</th><th class="r">Tối thiểu</th>${isOwner()?'<th class="r">Giá vốn</th><th class="r">Giá bán</th>':''}<th></th></tr>
+    ${list.map(i=>`<tr><td><b>${esc(i.name)}</b><div class="small muted mono">${esc(i.sku||'')}</div></td><td class="r num ${+i.qty<=+i.min_qty?'low':''}">${i.qty} ${esc(i.unit)}</td><td class="r num muted">${i.min_qty}</td>${isOwner()?`<td class="r num">${fmtVND(i.cost)}</td><td class="r num">${fmtVND(i.price)}</td>`:''}<td class="r"><div class="row" style="gap:4px;justify-content:flex-end;flex-wrap:nowrap"><button class="btn sm" data-adj="${i.id}" data-d="-1">−</button><button class="btn sm" data-adj="${i.id}" data-d="1">+</button>${isOwner()?`<button class="btn sm ghost" data-edititem="${i.id}">Sửa</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="6" class="empty">Kho trống.</td></tr>'}</table></div>
+    <p class="small muted">− / + để kiểm kê nhanh (nhập hàng, hao hụt). Xuất cho công việc thực hiện trong tab Vật tư của từng việc.</p></div>`;
+}
+function openItemForm(i){ i=i||{}; S.modal={html:`<div class="mhead"><h2>${i.id?'Sửa vật tư':'Vật tư mới'}</h2><button class="x" data-act="closemodal">×</button></div><form id="itemform" class="stack" data-id="${i.id||''}">
+  <label class="f">Tên<input name="name" value="${esc(i.name||'')}" required></label><div class="grid2"><label class="f">Mã<input name="sku" value="${esc(i.sku||'')}"></label><label class="f">Đơn vị<input name="unit" value="${esc(i.unit||'cái')}"></label></div>
+  <div class="grid2"><label class="f">Tồn kho<input name="qty" type="number" step="any" value="${i.qty??0}"></label><label class="f">Tồn tối thiểu<input name="min_qty" type="number" step="any" value="${i.min_qty??0}"></label></div>
+  <div class="grid2"><label class="f">Giá vốn (đ)<input name="cost" inputmode="numeric" value="${i.cost??0}"></label><label class="f">Giá bán (đ)<input name="price" inputmode="numeric" value="${i.price??0}"></label></div>
+  <div class="row" style="justify-content:space-between">${i.id?`<button type="button" class="btn danger" data-act="delitem">Xóa</button>`:'<span></span>'}<button class="btn primary">Lưu</button></div></form>`}; render(); }
+
+/* ===================== THU CHI ===================== */
+function periodRange(){ const n=new Date(); let from; if(S.period==='tuan'){ from=new Date(n); from.setDate(n.getDate()-((n.getDay()+6)%7)); from.setHours(0,0,0,0);} else if(S.period==='thang'){ from=new Date(n.getFullYear(),n.getMonth(),1);} else if(S.period==='nam'){ from=new Date(n.getFullYear(),0,1);} else from=new Date(0); return from; }
+function periodChips(){ return `<div class="chips">${[['tuan','Tuần này'],['thang','Tháng này'],['nam','Năm nay'],['all','Tất cả']].map(([k,v])=>`<span class="chip ${S.period===k?'active':''}" data-period="${k}">${v}</span>`).join('')}</div>`; }
+function renderThuChi(){
+  const from=periodRange(); const inP=r=>new Date(r.created_at)>=from; const jc=id=>(DB.jobs.find(j=>j.id===id)||{}).code||'';
+  if(!isOwner()){ const ex=DB.expenses.filter(e=>e.user_id===me().id); const owed=ex.filter(e=>!e.paid).reduce((s,e)=>s+(+e.amount),0);
+    return `<div class="stack"><h1>Chi của tôi</h1><div class="kpi"><div class="card bad"><div class="v" style="color:var(--warn)">${fmtVND(owed)}</div><div class="l">Chủ còn phải thanh toán lại</div></div><div class="card ok"><div class="v">${fmtVND(ex.filter(e=>e.paid).reduce((s,e)=>s+(+e.amount),0))}</div><div class="l">Đã được thanh toán</div></div></div>
+    <div class="card twrap" style="padding:0"><table><tr><th>Ngày</th><th>Việc</th><th>Khoản chi</th><th class="r">Tiền</th><th>TT</th></tr>${ex.map(e=>`<tr><td class="mono">${fmtD(e.created_at)}</td><td class="mono">${jc(e.job_id)}</td><td>${esc(e.desc)}</td><td class="r num">${fmtVND(e.amount)}</td><td>${e.paid?'<span class="pill s-hoan_thanh">Đã TT</span>':'<span class="pill s-dang_lam">Chờ</span>'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Chưa có khoản chi nào.</td></tr>'}</table></div></div>`; }
+  const pay=DB.payments.filter(inP), exp=DB.expenses.filter(inP), ji=DB.job_items.filter(inP);
+  const thu=pay.reduce((s,p)=>s+(+p.amount),0), chiNgoai=exp.reduce((s,e)=>s+(+e.amount),0), vonVT=ji.reduce((s,x)=>{const it=DB.items.find(i=>i.id===x.item_id)||{}; return s+(+x.qty)*(+it.cost||0);},0), owed=DB.expenses.filter(e=>!e.paid).reduce((s,e)=>s+(+e.amount),0);
+  return `<div class="stack"><h1>Thu chi</h1>${periodChips()}
+    <div class="kpi"><div class="card ok"><div class="v" style="color:var(--ok)">${fmtVND(thu)}</div><div class="l">Thu từ khách</div></div><div class="card"><div class="v">${fmtVND(vonVT)}</div><div class="l">Giá vốn vật tư xuất</div></div><div class="card"><div class="v">${fmtVND(chiNgoai)}</div><div class="l">Chi mua ngoài</div></div><div class="card hi"><div class="v" style="color:${thu-vonVT-chiNgoai>=0?'var(--ok)':'var(--bad)'}">${fmtVND(thu-vonVT-chiNgoai)}</div><div class="l">Chênh lệch</div></div><div class="card ${owed?'bad':''}"><div class="v" style="color:var(--warn)">${fmtVND(owed)}</div><div class="l">Nợ KTV (chưa TT lại)</div></div></div>
+    <h3>Khoản thu</h3><div class="card twrap" style="padding:0"><table><tr><th>Ngày</th><th>Việc</th><th>Khách</th><th>HT</th><th>Người thu</th><th class="r">Tiền</th></tr>${pay.map(p=>{const j=DB.jobs.find(x=>x.id===p.job_id)||{};return `<tr><td class="mono">${fmtD(p.created_at)}</td><td class="mono">${esc(j.code||'')}</td><td>${esc(cust(j.customer_id).name||'')}</td><td>${p.method==='tien_mat'?'TM':'CK'}</td><td>${esc(shortName(p.user_id))}</td><td class="r num">${fmtVND(p.amount)}</td></tr>`;}).join('')||'<tr><td colspan="6" class="empty">Không có.</td></tr>'}</table></div>
+    <h3>Chi mua ngoài</h3><div class="card twrap" style="padding:0"><table><tr><th>Ngày</th><th>Việc</th><th>KTV</th><th>Khoản chi</th><th class="r">Tiền</th><th></th></tr>${exp.map(e=>`<tr><td class="mono">${fmtD(e.created_at)}</td><td class="mono">${jc(e.job_id)}</td><td>${esc(shortName(e.user_id))}</td><td>${esc(e.desc)}</td><td class="r num">${fmtVND(e.amount)}</td><td>${e.paid?'<span class="pill s-hoan_thanh">Đã TT</span>':`<button class="btn sm" data-payexp="${e.id}">Thanh toán</button>`}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Không có.</td></tr>'}</table></div></div>`;
+}
+
+/* ===================== HIỆU SUẤT ===================== */
+function barChart(data, opts){ // data: [{label, value, hi}], opts: {unit, fmt, height}
+  const W=720, H=opts.height||220, padL=36, padR=12, padT=18, padB=34, n=data.length; const mx=Math.max(1,...data.map(d=>d.value)); const iw=(W-padL-padR)/n; const bw=Math.min(40,iw*.66);
+  const ticks=4; let g=''; for(let i=0;i<=ticks;i++){ const v=mx*i/ticks; const y=padT+(H-padT-padB)*(1-i/ticks); g+=`<line class="grid" x1="${padL}" x2="${W-padR}" y1="${y}" y2="${y}"/><text x="${padL-6}" y="${y+4}" text-anchor="end">${opts.fmt?opts.fmt(v):Math.round(v)}</text>`; }
+  const bars=data.map((d,i)=>{ const h=(H-padT-padB)*d.value/mx; const x=padL+iw*i+(iw-bw)/2; const y=H-padB-h; return `<rect class="bar ${d.cls||''}" x="${x}" y="${y}" width="${bw}" height="${h}" rx="3"/>${d.value?`<text class="lbl" x="${x+bw/2}" y="${y-4}" text-anchor="middle">${opts.fmt?opts.fmt(d.value):d.value}</text>`:''}<text x="${x+bw/2}" y="${H-padB+16}" text-anchor="middle">${esc(d.label)}</text>`; }).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.title||'')}">${g}${bars}</svg>`;
+}
+function renderHieuSuat(){
+  const staff=DB.users.filter(u=>u.active!==false&&u.role!=='owner'); const uidSel=isOwner()?(S.perfUser||(staff[0]||{}).id):me().id; const u=DB.users.find(x=>x.id===uidSel)||{};
+  const days=[]; for(let i=13;i>=0;i--){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-i); days.push(d); }
+  const ss=sessions(uidSel, days[0]); const byDay=days.map(d=>{ const k=dayKey(d); const m=ss.filter(s=>dayKey(s.start)===k).reduce((a,s)=>a+s.min,0); return {label:String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'),value:+(m/60).toFixed(1),cls:dayKey(d)===dayKey(new Date())?'ok':''}; });
+  const weeks=[]; for(let i=7;i>=0;i--){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)-7*i); weeks.push(d); }
+  const byWeek=weeks.map((d,i)=>{ const end=new Date(d); end.setDate(d.getDate()+7); const n=DB.jobs.filter(j=>j.assignee_id===uidSel&&j.done_at&&new Date(j.done_at)>=d&&new Date(j.done_at)<end).length; return {label:'T'+String(d.getDate()).padStart(2,'0')+'/'+(d.getMonth()+1),value:n,cls:i===weeks.length-1?'ok':''}; });
+  const wk=periodRangeOf('tuan'), mo=periodRangeOf('thang'); const minWk=sessions(uidSel,wk).reduce((a,s)=>a+s.min,0), minMo=sessions(uidSel,mo).reduce((a,s)=>a+s.min,0);
+  const doneMo=DB.jobs.filter(j=>j.assignee_id===uidSel&&j.done_at&&new Date(j.done_at)>=mo); const onTime=doneMo.filter(j=>!j.due_at||new Date(j.done_at)<=new Date(new Date(j.due_at).getTime()+2*36e5)).length;
+  const ssMo=sessions(uidSel,mo), flagged=ssMo.filter(x=>x.flag).length; const remMo=ssMo.filter(x=>x.remote).reduce((a,x)=>a+x.min,0);
+  const estJobs=doneMo.filter(j=>j.est); const onEst=estJobs.filter(j=>jobMinutes(j)<=j.est*60*1.2).length;
+  const avgMin=doneMo.length?sessions(uidSel,mo).filter(s=>doneMo.some(j=>j.id===s.job_id)).reduce((a,s)=>a+s.min,0)/doneMo.length:0;
+  const todayS=sessions(uidSel,(()=>{const d=new Date();d.setHours(0,0,0,0);return d;})());
+  const timeline=todayS.length?`<div class="timeline">${todayS.map(s=>{const j=DB.jobs.find(x=>x.id===s.job_id)||{}; return `<div class="tl"><span class="tm">${fmtT(s.start)}</span><span>▶ ${esc(j.code||'')} ${esc(j.title||'')}${s.remote?' <span class="pill s-cho_vat_tu">từ xa</span>':''}</span></div><div class="tl"><span class="tm">${s.end?fmtT(s.end):'…'}</span><span>${s.end?'■ rời công trình · '+fmtH(s.min):'<span style="color:var(--ok)">đang tại công trình · '+fmtH(s.min)+'</span>'}${s.flag?' <span class="flag">⚑ '+FLAG_TXT[s.flag]+'</span>':''}</span></div>`;}).join('')}</div>`:'<div class="empty">Hôm nay chưa ghi nhận ca nào tại công trình.</div>';
+  const rank=staff.map(x=>({u:x,min:sessions(x.id,mo).reduce((a,s)=>a+s.min,0),done:DB.jobs.filter(j=>j.assignee_id===x.id&&j.done_at&&new Date(j.done_at)>=mo).length})).sort((a,b)=>b.done-a.done||b.min-a.min);
+  return `<div class="stack"><div class="row"><h1 class="grow">Hiệu suất</h1></div>
+    ${isOwner()?`<div class="chips">${staff.map(x=>`<span class="chip ${x.id===uidSel?'active':''}" data-perf="${x.id}">${esc(shortName(x.id))}</span>`).join('')}</div>`:`<p class="muted small">Số liệu của bạn, tính từ các lần bấm "Bắt đầu" và "Hoàn thành / Rời công trình" (có GPS).</p>`}
+    <div class="kpi"><div class="card hi"><div class="v">${fmtH(minWk)}</div><div class="l">Giờ làm tuần này</div></div><div class="card"><div class="v">${fmtH(minMo-remMo)}</div><div class="l">Tại công trình tháng này</div></div><div class="card"><div class="v">${fmtH(remMo)}</div><div class="l">Từ xa tháng này</div></div><div class="card ok"><div class="v">${doneMo.length}</div><div class="l">Việc xong tháng này</div></div><div class="card"><div class="v">${doneMo.length?Math.round(onTime/doneMo.length*100)+'%':'—'}</div><div class="l">Đúng hẹn</div></div><div class="card"><div class="v">${avgMin?fmtH(avgMin):'—'}</div><div class="l">TB giờ / việc xong</div></div><div class="card"><div class="v">${estJobs.length?Math.round(onEst/estJobs.length*100)+'%':'—'}</div><div class="l">Đúng dự toán giờ</div></div><div class="card ${flagged?'bad':'ok'}"><div class="v" style="color:${flagged?'var(--bad)':'var(--ok)'}">${flagged}/${ssMo.length}</div><div class="l">Ca có cờ / tổng ca tháng</div></div></div>
+    <div class="card"><h3 style="margin-bottom:8px">Giờ tại công trình · 14 ngày gần nhất</h3>${barChart(byDay,{fmt:v=>v?String(+v.toFixed(1)):'0',title:'Giờ tại công trình theo ngày'})}</div>
+    <div class="grid2"><div class="card"><h3 style="margin-bottom:8px">Việc hoàn thành · 8 tuần</h3>${barChart(byWeek,{height:200,title:'Việc hoàn thành theo tuần'})}</div>
+    <div class="card"><h3 style="margin-bottom:8px">Hôm nay · ${esc(shortName(uidSel))}</h3>${timeline}</div></div>
+    <div class="card twrap"><h3 style="margin-bottom:8px">Giờ thực tế so với ước tính · việc đang mở & xong tháng này</h3><table><tr><th>Việc</th><th>Hình thức</th><th class="r">Ước</th><th class="r">Thực tế</th><th style="width:40%">So sánh</th></tr>${DB.jobs.filter(j=>j.assignee_id===uidSel&&(!isClosed(j)||(j.done_at&&new Date(j.done_at)>=mo))).map(j=>{const m=jobMinutes(j); const e=(j.est||0)*60; const mx=Math.max(e,m,1); return `<tr data-job="${j.id}" style="cursor:pointer"><td><span class="mono small muted">${esc(j.code)}</span> ${esc(j.title)}</td><td class="small">${MODES[j.mode||'onsite']}</td><td class="r num">${j.est?j.est+'h':'—'}</td><td class="r num ${e&&m>e*1.2?'low':''}">${fmtH(m)}</td><td><div class="bars"><div class="b" style="grid-template-columns:1fr"><div class="t" style="height:8px"><i style="width:${e/mx*100}%;background:var(--line2)"></i></div></div><div class="b" style="grid-template-columns:1fr"><div class="t" style="height:8px"><i style="width:${m/mx*100}%;background:${e&&m>e*1.2?'var(--bad)':'var(--accent)'}"></i></div></div></div></td></tr>`;}).join('')||'<tr><td colspan="5" class="empty">Chưa có việc.</td></tr>'}</table><p class="small muted" style="margin-top:6px">Thanh xám: ước tính · thanh màu: thực tế (đỏ khi vượt 120 % ước tính).</p></div>
+    ${isOwner()?`<div class="card twrap"><h3 style="margin-bottom:8px">Bảng xếp hạng tháng này</h3><table><tr><th>#</th><th>KTV</th><th class="r">Việc xong</th><th class="r">Giờ tại công trình</th><th class="r">Đang mở</th></tr>${rank.map((r,i)=>`<tr><td class="mono">${i+1}</td><td>${esc(r.u.name)}</td><td class="r num">${r.done}</td><td class="r num">${fmtH(r.min)}</td><td class="r num">${DB.jobs.filter(j=>j.assignee_id===r.u.id&&!isClosed(j)).length}</td></tr>`).join('')}</table></div>`:''}</div>`;
+}
+function periodRangeOf(p){ const save=S.period; S.period=p; const r=periodRange(); S.period=save; return r; }
+
+/* ===================== BÁO CÁO ===================== */
+function renderBaoCao(){
+  const from=periodRange(); const jobs=DB.jobs.filter(j=>new Date(j.created_at)>=from); const open=DB.jobs.filter(j=>!isClosed(j));
+  const byS=Object.keys(STATUS).map(k=>[k,DB.jobs.filter(j=>j.status===k).length]); const mx=Math.max(1,...byS.map(x=>x[1]));
+  const staff=DB.users.filter(u=>u.active!==false&&u.role!=='owner'); const done=u=>jobs.filter(j=>j.assignee_id===u.id&&j.status==='hoan_thanh').length, cur=u=>open.filter(j=>j.assignee_id===u.id).length, over=u=>open.filter(j=>j.assignee_id===u.id&&isOverdue(j)).length;
+  const avgH=(()=>{const d=DB.jobs.filter(j=>j.done_at&&new Date(j.created_at)>=from); if(!d.length) return '—'; return (d.reduce((s,j)=>s+(new Date(j.done_at)-new Date(j.created_at)),0)/d.length/36e5).toFixed(1)+' giờ';})();
+  const t0=new Date(); t0.setHours(0,0,0,0); const presence=DB.job_logs.filter(l=>(l.type==='checkin'||l.type==='checkout')&&new Date(l.created_at)>=t0).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  return `<div class="stack"><h1>Báo cáo</h1>${periodChips()}
+    <div class="kpi"><div class="card"><div class="v">${jobs.length}</div><div class="l">Việc tiếp nhận</div></div><div class="card ok"><div class="v" style="color:var(--ok)">${jobs.filter(j=>j.status==='hoan_thanh').length}</div><div class="l">Hoàn thành</div></div><div class="card hi"><div class="v">${open.length}</div><div class="l">Tồn đọng (mọi kỳ)</div></div><div class="card ${open.filter(isOverdue).length?'bad':''}"><div class="v" style="color:${open.filter(isOverdue).length?'var(--bad)':'inherit'}">${open.filter(isOverdue).length}</div><div class="l">Quá hạn</div></div><div class="card"><div class="v">${avgH}</div><div class="l">TB thời gian xử lý</div></div><div class="card"><div class="v">${DB.jobs.filter(j=>j.status==='hoan_thanh'&&!DB.acceptances.some(a=>a.job_id===j.id)).length}</div><div class="l">Xong nhưng chưa có phiếu ký</div></div><div class="card ${DB.acceptances.filter(a=>a.extras&&a.extras.length&&!a.extras_priced).length?'bad':''}"><div class="v">${DB.acceptances.filter(a=>a.extras&&a.extras.length&&!a.extras_priced).length}</div><div class="l">Phát sinh chờ định giá</div></div><div class="card ${DB.acceptances.filter(a=>a.flags&&a.flags.length).length?'bad':''}"><div class="v">${DB.acceptances.filter(a=>a.flags&&a.flags.length).length}</div><div class="l">Phiếu có cờ cần xem</div></div><div class="card ${DB.jobs.filter(j=>j.status==='hoan_thanh'&&(j.quote||0)>jobTotals(j).paid).length?'bad':''}"><div class="v">${fmtVND(DB.jobs.filter(j=>j.status==='hoan_thanh'&&(j.quote||0)>jobTotals(j).paid).reduce((a,j)=>a+(j.quote-jobTotals(j).paid),0))}</div><div class="l">Xong nhưng chưa thu đủ</div></div></div>
+    <div class="card"><h3 style="margin-bottom:8px">Hiện diện tại công trình hôm nay (GPS)</h3>${presence.length?`<div class="twrap"><table><tr><th>Giờ</th><th>KTV</th><th>Sự kiện</th><th>Việc</th><th>Vị trí</th><th></th></tr>${presence.map(l=>{const j=DB.jobs.find(x=>x.id===l.job_id)||{}; const isOpen=l.type==='checkin'&&openCheckin(l.job_id,l.user_id)&&openCheckin(l.job_id,l.user_id).id===l.id; const min=(Date.now()-new Date(l.created_at))/6e4; return `<tr><td class="mono">${fmtT(l.created_at)}</td><td>${esc(shortName(l.user_id))}</td><td>${l.type==='checkin'?'<span class="pill s-hoan_thanh">Bắt đầu</span>':'<span class="pill s-dang_lam">Rời</span>'}${l.flag?`<div class="flag small">⚑ ${FLAG_TXT[l.flag]}</div>`:''}${isOpen?`<div class="small ${min>480?'flag':'muted'}">đang mở · ${fmtH(min)}</div>`:''}</td><td>${esc(j.code||'')} ${esc(j.title||'')}</td><td>${l.lat?`<a href="${mapLink(l.lat,l.lng)}" target="_blank" rel="noopener" class="mono small">${l.lat}, ${l.lng}</a> <span class="small muted">±${l.acc}m</span>`:'<span class="flag">không có GPS</span>'}</td><td>${isOpen&&min>480?`<button class="btn sm danger" data-ownerclose="${l.id}">Đóng ca</button>`:''}</td></tr>`;}).join('')}</table></div>`:'<div class="empty">Hôm nay chưa có check-in nào.</div>'}<p class="small muted" style="margin-top:8px">Ca mở quá 8 giờ có thể đóng tay; ca quá 10 giờ chỉ tính tối đa 10 giờ và bị gắn cờ. KTV thao tác trong app khi ở cách công trình hơn ${FAR_M} m thì ca tự đóng và gắn cờ.</p></div>
+    <div class="grid2"><div class="card"><h3 style="margin-bottom:10px">Theo trạng thái</h3><div class="bars">${byS.map(([k,n])=>`<div class="b"><span>${STATUS[k]}</span><div class="t"><i style="width:${n/mx*100}%"></i></div><span class="num" style="text-align:right">${n}</span></div>`).join('')}</div></div>
+    <div class="card twrap"><h3 style="margin-bottom:10px">Theo KTV</h3><table><tr><th>KTV</th><th class="r">Xong</th><th class="r">Đang</th><th class="r">Quá hạn</th></tr>${staff.map(u=>`<tr><td>${esc(u.name)}</td><td class="r num">${done(u)}</td><td class="r num">${cur(u)}</td><td class="r num ${over(u)?'low':''}">${over(u)}</td></tr>`).join('')}</table></div></div>
+    <div class="card twrap"><h3 style="margin-bottom:10px">Việc tồn đọng</h3><table><tr><th>Mã</th><th>Nội dung</th><th>Khách</th><th>KTV</th><th>Trạng thái</th><th>Hẹn</th></tr>${open.map(j=>`<tr data-job="${j.id}" style="cursor:pointer"><td class="mono">${esc(j.code)}</td><td>${esc(j.title)}</td><td>${esc(cust(j.customer_id).name||'')}</td><td>${j.assignee_id?esc(shortName(j.assignee_id)):'<span style="color:var(--warn)">chưa</span>'}</td><td><span class="pill s-${j.status}">${STATUS[j.status]}</span></td><td class="mono ${isOverdue(j)?'low':''}">${fmtDT(j.due_at)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Không còn việc tồn đọng.</td></tr>'}</table></div></div>`;
+}
+
+/* ===================== NHÂN SỰ & CÀI ĐẶT ===================== */
+function renderNhanSu(){ const st=setting();
+  return `<div class="stack"><div class="row"><h1 class="grow">Nhân sự</h1><button class="btn primary sm" data-act="newuser">+ Nhân viên</button></div>
+    ${isRemote()?'<p class="small muted">Để nhân viên đăng nhập: tạo tài khoản (email + mật khẩu) trong Supabase → Authentication → Users; tài khoản tự hiện ở đây, sau đó sửa tên và vai trò.</p>':''}
+    <div class="card twrap" style="padding:0"><table><tr><th>Tên</th><th>SĐT</th><th>Vai trò</th><th>Trạng thái</th><th></th></tr>${DB.users.map(u=>`<tr><td><b>${esc(u.name)}</b>${u.email?`<div class="small muted">${esc(u.email)}</div>`:''}</td><td class="mono">${esc(u.phone||'')}</td><td>${u.role==='owner'?'Chủ':'KTV'}</td><td>${u.active===false?'<span class="pill s-huy">Ngưng</span>':'<span class="pill s-hoan_thanh">Hoạt động</span>'}</td><td class="r"><button class="btn sm ghost" data-edituser="${u.id}">Sửa</button></td></tr>`).join('')}</table></div>
+    <h3>Thông tin công ty (in trên phiếu)</h3><form id="shopf" class="card stack"><label class="f">Tên công ty<input name="shop_name" value="${esc(st.shop_name||'')}"></label><label class="f">Địa chỉ<input name="address" value="${esc(st.address||'')}"></label><label class="f">Điện thoại<input name="phone" value="${esc(st.phone||'')}"></label><div class="row" style="justify-content:flex-end"><button class="btn primary">Lưu</button></div></form></div>`;
+}
+function openUserForm(u){ u=u||{}; S.modal={html:`<div class="mhead"><h2>${u.id?'Sửa nhân viên':'Nhân viên mới'}</h2><button class="x" data-act="closemodal">×</button></div><form id="userform" class="stack" data-id="${u.id||''}">
+  <label class="f">Họ tên<input name="name" value="${esc(u.name||'')}" required></label><label class="f">Số điện thoại<input name="phone" value="${esc(u.phone||'')}"></label>
+  <label class="f">Vai trò<select name="role"><option value="staff" ${u.role!=='owner'?'selected':''}>Kỹ thuật viên</option><option value="owner" ${u.role==='owner'?'selected':''}>Chủ</option></select></label>
+  <label class="f">Trạng thái<select name="active"><option value="1" ${u.active!==false?'selected':''}>Hoạt động</option><option value="0" ${u.active===false?'selected':''}>Ngưng làm</option></select></label>
+  <div class="row" style="justify-content:flex-end"><button class="btn primary">Lưu</button></div></form>`}; render(); }
+
+/* ===================== SỰ KIỆN ===================== */
+document.addEventListener('click', async e=>{
+  const t=e.target.closest('[data-tab],[data-act],[data-job],[data-login],[data-st],[data-mine],[data-jtab],[data-delji],[data-payexp],[data-adj],[data-edititem],[data-edituser],[data-period],[data-perf],[data-openjob],[data-quickout],[data-ownerclose],[data-seq],[data-pin],[data-notif],.modal-bg');
+  if(!t) return;
+  if(t.classList.contains('modal-bg')){ if(e.target===t){ S.modal=null; render(); } return; }
+  if(t.dataset.tab){ S.tab=t.dataset.tab; location.hash=S.tab; render(); return; }
+  if(t.dataset.login){ S.user=DB.users.find(u=>u.id===t.dataset.login); lsSet('acq_user',S.user.id); S.jobFilter.mine=!isOwner(); notifSeen=new Set(); render(); setTimeout(announceNew,400); return; }
+  if(t.dataset.job){ openJob(t.dataset.job); return; }
+  if(t.dataset.openjob){ openJob(t.dataset.openjob); return; }
+  if(t.dataset.notif){ const n=DB.notifications.find(x=>x.id===t.dataset.notif); if(n&&!n.read) await Store.update('notifications',n.id,{read:true}); if(n&&n.job_id&&DB.jobs.some(j=>j.id===n.job_id)) openJob(n.job_id); else openNotifs(); return; }
+  if(t.dataset.pin){ e.preventDefault(); const l=DB.job_logs.find(x=>x.id===t.dataset.pin); await Store.update('jobs',l.job_id,{site_lat:l.lat,site_lng:l.lng,site_auto:false}); const jj=DB.jobs.find(x=>x.id===l.job_id); await rememberSite(jj,l.lat,l.lng); toast('Đã ghim vị trí công trình; lần bắt đầu cách quá '+FAR_M+' m sẽ bị gắn cờ'); openJob(l.job_id,'nhatky'); return; }
+  if(t.dataset.seq){ const ids=S._list||[]; const i=ids.indexOf(t.dataset.seq); const k=i+ +t.dataset.dir; if(i<0||k<0||k>=ids.length) return; [ids[i],ids[k]]=[ids[k],ids[i]]; for(let n=0;n<ids.length;n++) await Store.update('jobs',ids[n],{seq:n+1}); render(); return; }
+  if(t.dataset.quickout){ t.disabled=true; S.modal={jobId:t.dataset.quickout,html:''}; await doCheck('checkout','Rời công trình'); S.modal=null; render(); return; }
+  if(t.dataset.ownerclose){ const l=DB.job_logs.find(x=>x.id===t.dataset.ownerclose); await Store.insert('job_logs',{job_id:l.job_id,user_id:l.user_id,type:'checkout',text:'Chủ đóng ca (KTV không bấm rời)',flag:'owner',closed_by:me().id}); await notify(l.user_id,'⚑ Chủ đã đóng ca của bạn','Bạn quên bấm rời công trình; lần sau nhớ bấm Rời khi xong.',l.job_id,'flag'); toast('Đã đóng ca và gắn cờ'); render(); return; }
+  if(t.dataset.mine!==undefined){ S.jobFilter.mine=!S.jobFilter.mine; render(); return; }
+  if(t.dataset.st!==undefined && !S.modal){ S.jobFilter.status=t.dataset.st; render(); return; }
+  if(t.dataset.period){ S.period=t.dataset.period; render(); return; }
+  if(t.dataset.perf){ S.perfUser=t.dataset.perf; render(); return; }
+  if(t.dataset.jtab){ openJob(S.modal.jobId,t.dataset.jtab); return; }
+  if(t.dataset.st!==undefined && S.modal){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); if(j.status===t.dataset.st) return; if(!isOwner()&&['hoan_thanh','huy'].includes(t.dataset.st)){ toast('Hoàn thành chỉ qua phiếu xác nhận'); return; } const old=j.status; await Store.update('jobs',j.id,{status:t.dataset.st,done_at:t.dataset.st==='hoan_thanh'?now():null}); await Store.insert('job_logs',{job_id:j.id,user_id:me().id,type:'status',text:STATUS[old]+' → '+STATUS[t.dataset.st]}); await notify(isOwner()?j.assignee_id:owners(),j.code+': '+STATUS[old]+' → '+STATUS[t.dataset.st],j.title,j.id,t.dataset.st==='hoan_thanh'?'done':'info'); openJob(j.id); return; }
+  if(t.dataset.delji){ const x=DB.job_items.find(q=>q.id===t.dataset.delji); const it=DB.items.find(i=>i.id===x.item_id); if(it) await Store.update('items',it.id,{qty:+it.qty+ +x.qty}); await Store.remove('job_items',x.id); openJob(S.modal.jobId,'vattu'); return; }
+  if(t.dataset.payexp){ await Store.update('expenses',t.dataset.payexp,{paid:true,paid_at:now()}); toast('Đã ghi thanh toán'); if(S.modal) openJob(S.modal.jobId,'chi'); else render(); return; }
+  if(t.dataset.adj){ const it=DB.items.find(i=>i.id===t.dataset.adj); await Store.update('items',it.id,{qty:Math.max(0,+it.qty+ +t.dataset.d)}); render(); return; }
+  if(t.dataset.edititem){ openItemForm(DB.items.find(i=>i.id===t.dataset.edititem)); return; }
+  if(t.dataset.edituser){ openUserForm(DB.users.find(u=>u.id===t.dataset.edituser)); return; }
+  const a=t.dataset.act; if(!a) return; e.preventDefault();
+  if(a==='notifs') openNotifs();
+  if(a==='readall'){ for(const n of myNotifs().filter(x=>!x.read)) await Store.update('notifications',n.id,{read:true}); openNotifs(); }
+  if(a==='enablepush') enablePush();
+  if(a==='logout'){ S.user=null; lsSet('acq_user',null); if(isRemote()) await supa.auth.signOut(); render(); }
+  if(a==='reset'){ localStorage.removeItem('acq_db'); seedDemo(); Store.persist(); toast('Đã nạp lại dữ liệu mẫu'); render(); }
+  if(a==='closemodal'){ S.modal=null; render(); }
+  if(a==='newjob'){ if(!isOwner()){ toast('Chỉ chủ tạo việc; KTV ghi phát sinh trong phiếu xác nhận'); return; } openNewJob(); }
+  if(a==='editjob') openEditJob(DB.jobs.find(x=>x.id===S.modal.jobId));
+  if(a==='deljob'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); if(!j) return; if(!t.dataset.sure){ t.dataset.sure='1'; t.textContent='Chắc chắn xóa?'; return; } for(const tb of ['job_logs','job_items','expenses','payments','acceptances']) for(const r of DB[tb].filter(x=>x.job_id===j.id)) await Store.remove(tb,r.id); await Store.remove('jobs',j.id); S.modal=null; toast('Đã xóa'); render(); }
+  if(a==='newitem') openItemForm();
+  if(a==='delitem'){ const id=document.getElementById('itemform').dataset.id; if(!t.dataset.sure){ t.dataset.sure='1'; t.textContent='Chắc chắn xóa?'; return; } await Store.remove('items',id); S.modal=null; render(); }
+  if(a==='newuser') openUserForm();
+  if(a==='checkin'){ t.disabled=true; await doCheck('checkin','Có mặt tại công trình'); openJob(S.modal.jobId,'nhatky'); }
+  if(a==='checkin-remote'){ t.disabled=true; S.remoteNext=true; await doCheck('checkin','Có mặt tại công trình'); openJob(S.modal.jobId,'nhatky'); }
+  if(a==='checkout'){ t.disabled=true; const j=DB.jobs.find(x=>x.id===S.modal.jobId); await doCheck('checkout',j.status==='cho_vat_tu'?'Chờ vật tư – rời công trình':'Tạm nghỉ – rời công trình'); openJob(S.modal.jobId,'nhatky'); }
+  if(a==='finish'||a==='newacc'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); if(!canAccept(j)){ toast(j.mode==='remote'?'Bấm Bắt đầu trước khi lập phiếu':'Phải đang có mặt tại công trình (bấm Bắt đầu tại công trình) mới nghiệm thu được'); return; } openAcceptance(S.modal.jobId); }
+  if(a==='livecam'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); openCamera((img)=>{ S.accPhotos.push(img); if(S.accThumbs) S.accThumbs(); }, j.code+' · '+shortName(me().id)); }
+  if(a==='viewacc') openAcceptance(S.modal.jobId,t.dataset.id);
+  if(a==='saveacc') saveAcceptance();
+  if(a==='quickdeliver') openQuickDeliver(S.modal.jobId);
+  if(a==='collect'){ t.disabled=true; await collectDone(t.dataset.method); }
+  if(a==='collect-no'){ t.disabled=true; await collectDone(null); }
+  if(a==='savedeliver') saveDeliver();
+  if(a==='priced'){ await Store.update('acceptances',t.dataset.id,{extras_priced:true}); const jj=DB.jobs.find(x=>x.id===S.modal.jobId); if(jj&&jj.assignee_id) await notify(jj.assignee_id,'Phát sinh ở '+jj.code+' đã được định giá','Chủ đã cập nhật giá chốt',jj.id,'money'); toast('Đã đánh dấu định giá'); openJob(S.modal.jobId,'nghiemthu'); }
+  if(a==='clearsig'){ const cv=document.getElementById('sig'); cv.getContext('2d').clearRect(0,0,cv.width,cv.height); cv._dirty=false; }
+  if(a==='dlsheet') downloadSheet().catch(()=>toast('Không tải được ở môi trường này – nhấn giữ ảnh để lưu'));
+});
+document.addEventListener('input', e=>{ const re=(id,fn)=>{ document.getElementById('view').innerHTML=fn(); const i=document.getElementById(id); i.focus(); i.setSelectionRange(i.value.length,i.value.length); }; if(e.target.id==='jq'){ S.jobFilter.q=e.target.value; re('jq',renderJobs); } if(e.target.id==='khoq'){ S.khoQ=e.target.value; re('khoq',renderKho); } });
+document.addEventListener('change', async e=>{
+  if(e.target.id==='prog'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); await Store.update('jobs',j.id,{progress:+e.target.value}); document.getElementById('progv').textContent=e.target.value+'%'; }
+  if(e.target.id==='assign'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); await Store.update('jobs',j.id,{assignee_id:e.target.value||null}); if(e.target.value) await notify(e.target.value,'Bạn được giao việc '+j.code,j.title+(j.priority==='cao'?' · GẤP':'')+(j.due_at?' · hẹn '+fmtDT(j.due_at):''),j.id,'assign'); await Store.insert('job_logs',{job_id:j.id,user_id:me().id,type:'status',text:'Giao cho '+(e.target.value?userName(e.target.value):'(bỏ phân công)')}); toast('Đã phân công'); openJob(j.id); }
+});
+document.addEventListener('submit', async e=>{
+  e.preventDefault(); const f=F(e.target); const id=e.target.id;
+  try{
+    if(id==='loginf'){ const {data,error}=await supa.auth.signInWithPassword({email:f.lemail.value,password:f.lpass.value}); if(error){ document.getElementById('lerr').textContent='Sai email hoặc mật khẩu.'; return; } await afterRemoteLogin(data.session); }
+    if(id==='jobf') await submitNewJob(f);
+    if(id==='editjobf'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); const wasPrio=j.priority, wasDue=j.due_at; await Store.update('jobs',j.id,{title:f.title.value.trim(),address:f.address.value.trim(),description:f.description.value.trim(),priority:f.priority.value,mode:f.mode.value,est:+f.est.value||null,due_at:f.due.value?new Date(f.due.value).toISOString():null}); const co=parseCoords(f.maps.value); if(co&&(co.lat!==j.site_lat||co.lng!==j.site_lng)){ await Store.update('jobs',j.id,{site_lat:co.lat,site_lng:co.lng,site_auto:false}); await rememberSite(j,co.lat,co.lng); } else if(!co&&!j.site_lat){ const ks=knownSite(cust(j.customer_id),f.address.value.trim()); if(ks) await Store.update('jobs',j.id,{site_lat:ks.lat,site_lng:ks.lng,site_auto:true}); } if(j.assignee_id&&(j.priority!==wasPrio||j.due_at!==wasDue)) await notify(j.assignee_id,(j.priority==='cao'&&wasPrio!=='cao')?'Việc '+j.code+' chuyển thành GẤP':'Việc '+j.code+' đổi lịch hẹn',j.title+(j.due_at?' · hẹn '+fmtDT(j.due_at):''),j.id,j.priority==='cao'?'urgent':'info'); openJob(j.id); }
+    if(id==='logf'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); const photo=f.photo.files[0]?await fileToDataURL(f.photo.files[0]):null; await Store.insert('job_logs',{job_id:j.id,user_id:me().id,type:'note',text:f.text.value.trim(),photo}); openJob(j.id,'nhatky'); silentGeoCheck(); }
+    if(id==='itemf'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); const it=DB.items.find(i=>i.id===f.item.value); const q=+f.qty.value; await Store.insert('job_items',{job_id:j.id,item_id:it.id,qty:q,unit_price:+it.price||0}); await Store.update('items',it.id,{qty:+it.qty-q}); openJob(j.id,'vattu'); silentGeoCheck(); }
+    if(id==='expf'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); const receipt=f.receipt.files[0]?await fileToDataURL(f.receipt.files[0]):null; await Store.insert('expenses',{job_id:j.id,user_id:me().id,desc:f.desc.value.trim(),amount:+f.amount.value.replace(/\D/g,''),paid:false,receipt}); await notify(owners(),'₫ '+shortName(me().id)+' chi mua ngoài '+fmtVND(+f.amount.value.replace(/\D/g,''))+' · '+j.code,f.desc.value.trim(),j.id,'money'); openJob(j.id,'chi'); silentGeoCheck(); }
+    if(id==='quotef'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); await Store.update('jobs',j.id,{quote:+f.quote.value.replace(/\D/g,'')}); toast('Đã lưu giá'); openJob(j.id,'thu'); }
+    if(id==='payf'){ const j=DB.jobs.find(x=>x.id===S.modal.jobId); await Store.insert('payments',{job_id:j.id,amount:+f.amount.value.replace(/\D/g,''),method:f.method.value,user_id:me().id}); openJob(j.id,'thu'); }
+    if(id==='itemform'){ const row={name:f.name.value.trim(),sku:f.sku.value.trim(),unit:f.unit.value.trim()||'cái',qty:+f.qty.value,min_qty:+f.min_qty.value,cost:+String(f.cost.value).replace(/\D/g,''),price:+String(f.price.value).replace(/\D/g,'')}; if(e.target.dataset.id) await Store.update('items',e.target.dataset.id,row); else await Store.insert('items',row); S.modal=null; render(); }
+    if(id==='userform'){ const row={name:f.name.value.trim(),phone:f.phone.value.trim(),role:f.role.value,active:f.active.value==='1'}; if(e.target.dataset.id) await Store.update('users',e.target.dataset.id,row); else { if(isRemote()){ toast('Tạo tài khoản trong Supabase trước, rồi sửa tên ở đây'); return; } await Store.insert('users',row); } S.modal=null; render(); }
+    if(id==='shopf'){ const row={shop_name:f.shop_name.value.trim(),address:f.address.value.trim(),phone:f.phone.value.trim()}; if(DB.settings[0]) await Store.update('settings',DB.settings[0].id,row); else await Store.insert('settings',Object.assign({id:'main'},row)); toast('Đã lưu'); render(); }
+  }catch(err){ console.error(err); toast('Lỗi: '+(err.message||err)); }
+});
+window.addEventListener('hashchange',()=>{ const h=location.hash.slice(1); if(['viec','kho','thuchi','hieusuat','baocao','nhansu'].includes(h)){ S.tab=h; render(); } });
+
+let syncTimer=null, rtChannel=null;
+async function refreshRemote(){ if(!isRemote()||!S.user) return; try{ const seen=new Set(myNotifs().map(n=>n.id)); notifSeen=new Set([...notifSeen,...seen]); const before=JSON.stringify([DB.jobs.length,DB.job_logs.length,DB.acceptances.length,DB.payments.length,DB.items.length]); await Store.loadAll(S.user.role); announceNew(); const after=JSON.stringify([DB.jobs.length,DB.job_logs.length,DB.acceptances.length,DB.payments.length,DB.items.length]); if(before!==after||true){ if(!S.modal) render(); else if(S.modal.jobId&&!S.modal.accId&&!document.getElementById('sig')&&!document.getElementById('jobf')) openJob(S.modal.jobId,S.modal.jobTab); } }catch(e){ console.warn('sync',e); } }
+function startSync(){ if(!isRemote()) return; clearInterval(syncTimer); syncTimer=setInterval(()=>{ if(document.visibilityState==='visible') refreshRemote(); },30000);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') refreshRemote(); });
+  try{ if(rtChannel) supa.removeChannel(rtChannel); rtChannel=supa.channel('db-changes'); let t=null; const bump=()=>{ clearTimeout(t); t=setTimeout(refreshRemote,800); }; ['jobs','job_logs','acceptances','payments','expenses','job_items','items','customers','users','settings','notifications'].forEach(tb=>rtChannel.on('postgres_changes',{event:'*',schema:'public',table:tb},bump)); rtChannel.subscribe(); }catch(e){ console.warn('realtime',e); } }
+async function afterRemoteLogin(session){
+  const {data:prof}=await supa.from('users').select('*').eq('id',session.user.id).single();
+  if(!prof){ const el=document.getElementById('lerr'); if(el) el.textContent='Tài khoản chưa được gắn vào công ty.'; return; }
+  S.user=prof; S.jobFilter.mine=prof.role!=='owner'; await Store.loadAll(prof.role); render(); startSync();
+}
+(async function boot(){
+  const h=location.hash.slice(1); if(['viec','kho','thuchi','hieusuat','baocao','nhansu'].includes(h)) S.tab=h;
+  let remote=false; try{ remote=await loadSupabase(); }catch(e){ console.warn('Không tải được Supabase, chạy cục bộ'); }
+  if(remote){ const {data:{session}}=await supa.auth.getSession(); if(session){ await afterRemoteLogin(session); return; } render(); }
+  else { await Store.loadAll(); const u=lsGet('acq_user'); if(u) S.user=DB.users.find(x=>x.id===u)||null; if(S.user) S.jobFilter.mine=!isOwner(); render(); }
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js');
+      const notify = () => { if (reg.waiting) { window.__newVersionReady = true; window.__applyUpdate = () => { reg.waiting.postMessage('SKIP_WAITING'); }; if (typeof render === 'function' && typeof S !== 'undefined' && S.user) render(); } };
+      reg.addEventListener('updatefound', () => { const nw = reg.installing; nw && nw.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) notify(); }); });
+      notify();
+      setInterval(() => reg.update().catch(() => {}), 15 * 60 * 1000);
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+      navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.openJob && typeof openJob === 'function') setTimeout(() => openJob(e.data.openJob), 300); });
+      let refreshing = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (refreshing) return; refreshing = true; location.reload(); });
+    } catch (e) {}
+  });
+}
+</script>
+</body>
+</html>
